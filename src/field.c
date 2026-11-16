@@ -196,6 +196,16 @@ fieldstruct *load_field(char *filename, int fieldindex, char *hfilename)
             imatab->headnblock = 1 + (key->nbytes-1)/FBSIZE;
             QCALLOC(imatab->headbuf, char, imatab->headnblock*FBSIZE);
             memcpy(imatab->headbuf, key->ptr, key->nbytes);
+            /*---- Some writers pad the header cards with NULs instead of */
+            /*---- blanks: turn them into blanks so that the END card can be */
+            /*---- found, and refuse headers without END (which would make */
+            /*---- the FITS keyword routines read beyond the buffer) */
+            for (pstr=imatab->headbuf, j=80*((key->nbytes+79)/80); j--; pstr++)
+                if (!*pstr)
+                    *pstr = ' ';
+            if (!fitsnfind(imatab->headbuf, "END     ", imatab->headnblock))
+                error(EXIT_FAILURE, "*Error*: No END keyword in the "
+                        "LDAC_IMHEAD header of ", filename);
             imatab->cat = cat;
             readbasic_head(imatab);
             field->headflag |= !read_aschead(prefs.ahead_global, n, imatab);
