@@ -84,18 +84,96 @@ dnl check if the platform is OSX
 $CC -dumpmachine 2>&1 | grep -i "darwin" > /dev/null 2>&1 && flagosx=yes
 
 dnl ----------------------
-dnl Exit if INTEL compiler is not found
+dnl Without INTEL compiler, only GCC (or compatible) on x86_64 Linux is
+dnl supported, through MKL's GNU interface and threading layers
 dnl ----------------------
 if test x$flagicc = x; then
-  AC_SUBST(MKL_CFLAGS, "")
-  AC_SUBST(MKL_LDFLAGS, "")
-  AC_SUBST(MKL_LIBS, "")
-  MKL_WARN="INTEL compiler not detected"
-  AC_SUBST(MKL_WARN)
-  exit
+  if test "x$GCC" = xyes && test "x$flagosx" = x \
+	&& test "x$host_cpu" = xx86_64; then
+    flaggnu=yes
+  else
+    AC_MSG_ERROR([INTEL's MKL requires the INTEL compiler or GCC on x86_64 Linux! Exiting.])
+  fi
 fi
 
-if test x$flagosx = xyes; then
+if test x$flaggnu = xyes; then
+dnl GNU compiler on x86_64 Linux
+  AC_MSG_CHECKING([for INTEL's MKL usable with the GNU compiler])
+  if test "x$mklroot" = x; then
+dnl No MKL root directory: look for a distribution package (e.g. Debian/Ubuntu)
+    if test -f /usr/include/mkl/mkl.h; then
+      acx_mkl_incflags="-I/usr/include/mkl"
+    else
+      acx_mkl_incflags=""
+    fi
+    acx_mkl_libdir=""
+  else
+    acx_mkl_incflags="-I$mklroot/include"
+    if test -d "$mklroot/lib/intel64"; then
+      acx_mkl_libdir="$mklroot/lib/intel64"
+    else
+      acx_mkl_libdir="$mklroot/lib"
+    fi
+  fi
+  if test x$2 = xyes; then
+dnl 64 bit pointers
+    acx_mkl_iface="mkl_gf_ilp64"
+    AC_SUBST(MKL_CFLAGS, "-m64 -DMKL_ILP64 $acx_mkl_incflags")
+  else
+dnl 32 bit pointers
+    acx_mkl_iface="mkl_gf_lp64"
+    AC_SUBST(MKL_CFLAGS, "-m64 $acx_mkl_incflags")
+  fi
+  AC_SUBST(MKL_LDFLAGS, "")
+  if test x$3 = xyes; then
+dnl Static linking
+    if test "x$acx_mkl_libdir" = x; then
+      acx_mkl_sdir=`$CC -print-file-name=libmkl_core.a`
+      acx_mkl_sdir=`dirname "$acx_mkl_sdir"`
+    else
+      acx_mkl_sdir="$acx_mkl_libdir"
+    fi
+    acx_mkl_slibs="$acx_mkl_sdir/lib$acx_mkl_iface.a,\
+$acx_mkl_sdir/libmkl_gnu_thread.a,\
+$acx_mkl_sdir/libmkl_core.a,--end-group -lgomp -lpthread -lm -ldl"
+    AC_SUBST(MKL_LIBS, ["$startgroup,$acx_mkl_slibs"])
+dnl Convenience libraries are not built yet: leave them out of the link test
+    acx_mkl_testlibs="-Wl,--start-group,$acx_mkl_slibs"
+  else
+dnl Dynamic linking
+    if test "x$acx_mkl_libdir" = x; then
+      acx_mkl_libopt=""
+    else
+      acx_mkl_libopt="-L$acx_mkl_libdir "
+    fi
+    AC_SUBST(MKL_LIBS, "$acx_mkl_libopt-l$acx_mkl_iface -lmkl_gnu_thread \
+	-lmkl_core -lgomp -lpthread -lm -ldl")
+    acx_mkl_testlibs="$MKL_LIBS"
+  fi
+dnl Check that MKL can actually be compiled and linked with these settings
+  acx_mkl_save_CFLAGS="$CFLAGS"
+  acx_mkl_save_LIBS="$LIBS"
+  CFLAGS="$CFLAGS $MKL_CFLAGS"
+  LIBS="$acx_mkl_testlibs $LIBS"
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <mkl.h>
+#include <mkl_lapacke.h>
+#include <fftw/fftw3_mkl.h>
+]], [[
+  double a = 4.0;
+  fftwf_plan plan;
+  mkl_set_num_threads(1);
+  plan = fftwf_plan_dft_r2c_2d(4, 4, (float *)0, (fftwf_complex *)0,
+	FFTW_ESTIMATE);
+  fftwf_destroy_plan(plan);
+  return (int)LAPACKE_dpotrf(LAPACK_ROW_MAJOR, 'L', 1, &a, 1);
+]])],
+    [AC_MSG_RESULT([yes])],
+    [AC_MSG_RESULT([no])
+     AC_MSG_ERROR([INTEL's MKL not found or not usable with $CC (MKL_CFLAGS = $MKL_CFLAGS, MKL_LIBS = $acx_mkl_testlibs). Set MKLROOT or use --with-mkl-dir! Exiting.])])
+  CFLAGS="$acx_mkl_save_CFLAGS"
+  LIBS="$acx_mkl_save_LIBS"
+elif test x$flagosx = xyes; then
 dnl MacOSX
   if test x$flag64 = xyes; then
 dnl INTEL compiler uses Intel64 architecture

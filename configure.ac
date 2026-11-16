@@ -114,7 +114,7 @@ AC_ARG_ENABLE(mkl,
 	    AC_MSG_RESULT([yes])
         CC=""
         [AC_CHECK_PROGS(CC, [icc icx cc])]
-        enable_iccx="yes",
+        AS_CASE([$CC], [icc|icx], [enable_iccx="yes"]),
 	AC_MSG_RESULT([no]))
 
 # Checks for programs.
