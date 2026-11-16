@@ -52,7 +52,7 @@ if test x$2 = x; then
     [${acx_openblas_incdir}cblas.h ${acx_openblas_incdir}lapacke.h],,
     [
       [acx_openblas_incdir=""]
-      AC_CHECK_HEADER(
+      AC_CHECK_HEADERS(
         [cblas.h lapacke.h],,
         [OPENBLAS_ERROR="OpenBLAS header files not found!"]
       )
@@ -112,6 +112,19 @@ dnl ----------------------------
       [LAPACKE_dpotrf], ["openblas"$acx_openblas_suffix],,
       [OPENBLAS_ERROR="OpenBLAS"$acx_openblas_suffix" library file not found!"],
       $acx_openblas_libopt
+    )
+  fi
+dnl Some distributions (e.g., Debian/Ubuntu) ship LAPACKe in a separate
+dnl library instead of bundling it with OpenBLAS
+  if test "x$OPENBLAS_ERROR" != "x"; then
+    unset ac_cv_search_LAPACKE_dpotrf
+    AC_SEARCH_LIBS(
+      [LAPACKE_dpotrf], ["lapacke"$acx_openblas_suffix],
+      [
+        OPENBLAS_ERROR=""
+        ac_cv_search_LAPACKE_dpotrf="$ac_cv_search_LAPACKE_dpotrf -lopenblas$acx_openblas_suffix"
+      ],,
+      [$acx_openblas_libopt -lopenblas$acx_openblas_suffix]
     )
   fi
   LIBS="$OLIBS"
