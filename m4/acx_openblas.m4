@@ -46,34 +46,72 @@ dnl Search include files
 dnl --------------------
 
 OPENBLAS_ERROR=""
-if test x$2 = x; then
-  [acx_openblas_incdir="openblas/"]
-  AC_CHECK_HEADERS(
-    [${acx_openblas_incdir}cblas.h ${acx_openblas_incdir}lapacke.h],,
-    [
-      [acx_openblas_incdir=""]
-      AC_CHECK_HEADERS(
-        [cblas.h lapacke.h],,
-        [OPENBLAS_ERROR="OpenBLAS header files not found!"]
-      )
-    ]
-  )
+if test x$4 = xyes; then
+  acx_openblas_suffix="64"
+  OPENBLAS_CFLAGS="-DOPENBLAS_USE64BITINT -DLAPACK_ILP64"
 else
-  acx_openblas_incdir="$2/"
-  AC_CHECK_HEADER(
-    [${acx_openblas_incdir}cblas.h],,
-    [
-      [acx_openblas_incdir="$2/include/"]
-      AC_CHECK_HEADERS(
-        [${acx_openblas_incdir}cblas.h ${acx_openblas_incdir}lapacke.h],,
-        [OPENBLAS_ERROR="OpenBLAS header files not found in "$2"!"]
-    )]
-  )
+  acx_openblas_suffix=""
+  OPENBLAS_CFLAGS=""
+fi
+
+dnl Candidate header directories ("default" = compiler's default search path)
+if test x$2 = x; then
+dnl Upstream layout, then the directory advertised by pkg-config (e.g.
+dnl .../openblas-pthread/ on Debian/Ubuntu), then the default path
+  acx_openblas_pcdir=""
+  if pkg-config --exists openblas$acx_openblas_suffix 2>/dev/null; then
+    acx_openblas_pcdir=`pkg-config --variable=includedir \
+	openblas$acx_openblas_suffix | sed 's|/*$|/|'`
+  fi
+  acx_openblas_dirs="openblas/ $acx_openblas_pcdir default"
+  acx_openblas_where=""
+else
+  acx_openblas_dirs="$2/ $2/include/"
+  acx_openblas_where=" in $2"
+fi
+
+dnl OpenBLAS's own cblas.h, recognized by its openblas_set_num_threads()
+dnl declaration (other BLAS headers may be installed as plain cblas.h)
+AC_MSG_CHECKING([for OpenBLAS's cblas.h])
+acx_openblas_blash=""
+for acx_openblas_d in $acx_openblas_dirs; do
+  test "x$acx_openblas_d" = xdefault && acx_openblas_d=""
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <${acx_openblas_d}cblas.h>]],
+	[[void (*f)(int) = openblas_set_num_threads; (void)f;]])],
+	[acx_openblas_blash="${acx_openblas_d}cblas.h"; break])
+done
+if test "x$acx_openblas_blash" != x; then
+  acx_openblas_ownblash="yes"
+  AC_MSG_RESULT([$acx_openblas_blash])
+else
+  acx_openblas_ownblash="no"
+  AC_MSG_RESULT([no])
+dnl Fall back to any cblas.h
+  AC_MSG_CHECKING([for cblas.h])
+  for acx_openblas_d in $acx_openblas_dirs; do
+    test "x$acx_openblas_d" = xdefault && acx_openblas_d=""
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <${acx_openblas_d}cblas.h>]])],
+	[acx_openblas_blash="${acx_openblas_d}cblas.h"; break])
+  done
+  AC_MSG_RESULT([${acx_openblas_blash:-no}])
+fi
+
+AC_MSG_CHECKING([for lapacke.h])
+acx_openblas_lapackeh=""
+for acx_openblas_d in $acx_openblas_dirs; do
+  test "x$acx_openblas_d" = xdefault && acx_openblas_d=""
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <${acx_openblas_d}lapacke.h>]])],
+	[acx_openblas_lapackeh="${acx_openblas_d}lapacke.h"; break])
+done
+AC_MSG_RESULT([${acx_openblas_lapackeh:-no}])
+
+if test "x$acx_openblas_blash" = x || test "x$acx_openblas_lapackeh" = x; then
+  OPENBLAS_ERROR="OpenBLAS header files not found$acx_openblas_where!"
 fi
 
 if test "x$OPENBLAS_ERROR" = "x"; then
-  AC_DEFINE_UNQUOTED(BLAS_H, "${acx_openblas_incdir}cblas.h", [BLAS header filename.])
-  AC_DEFINE_UNQUOTED(LAPACKE_H, "${acx_openblas_incdir}lapacke.h", [LAPACKe header filename.])
+  AC_DEFINE_UNQUOTED(BLAS_H, "$acx_openblas_blash", [BLAS header filename.])
+  AC_DEFINE_UNQUOTED(LAPACKE_H, "$acx_openblas_lapackeh", [LAPACKe header filename.])
 
 dnl ----------------------------
 dnl Search OpenBLAS library file
@@ -81,39 +119,18 @@ dnl ----------------------------
 
   OLIBS="$LIBS"
   LIBS=""
-  if test x$4 = xyes; then
-    acx_openblas_suffix="64"
-    OPENBLAS_CFLAGS="-DOPENBLAS_USE64BITINT -DLAPACK_ILP64"
-  else
-    acx_openblas_suffix=""
-    OPENBLAS_CFLAGS=""
-  fi
   if test x$1 = x; then
     acx_openblas_libopt=""
   else
     acx_openblas_libopt="-L$1"
   fi
-  if test x$3 == xyes; then
-    AC_SEARCH_LIBS(
-      [LAPACKE_dpotrf], ["openblasp"$acx_openblas_suffix],
-      AC_DEFINE(HAVE_OPENBLASP,1,
-		[Define if you have the OpenBLAS parallel library and header files.]),
-      unset ac_cv_search_LAPACKE_dpotrf
-      [AC_SEARCH_LIBS(
-        [LAPACKE_dpotrf], ["openblas"$acx_openblas_suffix],
-	[OPENBLAS_WARN="parallel OpenBLAS"$acx_openblas_suffix" not found, reverting to scalar OpenBLAS"$acx_openblas_suffix"!"],
-        [OPENBLAS_ERROR="OpenBLAS"$acx_openblas_suffix" library file not found!"],
-        $acx_openblas_libopt
-      )],
-      $acx_openblas_libopt
-    )
-  else
-    AC_SEARCH_LIBS(
-      [LAPACKE_dpotrf], ["openblas"$acx_openblas_suffix],,
-      [OPENBLAS_ERROR="OpenBLAS"$acx_openblas_suffix" library file not found!"],
-      $acx_openblas_libopt
-    )
-  fi
+dnl "openblasp" is the parallel version on e.g. Fedora
+  AC_SEARCH_LIBS(
+    [LAPACKE_dpotrf],
+    ["openblasp"$acx_openblas_suffix "openblas"$acx_openblas_suffix],,
+    [OPENBLAS_ERROR="OpenBLAS"$acx_openblas_suffix" library file not found!"],
+    $acx_openblas_libopt
+  )
 dnl Some distributions (e.g., Debian/Ubuntu) ship LAPACKe in a separate
 dnl library instead of bundling it with OpenBLAS
   if test "x$OPENBLAS_ERROR" != "x"; then
@@ -126,6 +143,23 @@ dnl library instead of bundling it with OpenBLAS
       ],,
       [$acx_openblas_libopt -lopenblas$acx_openblas_suffix]
     )
+  fi
+dnl Thread control: whatever the library name, the number of threads can be
+dnl set if openblas_set_num_threads() is both declared and available
+  if test "x$OPENBLAS_ERROR" = "x" && test x$3 = xyes; then
+    if test "x$acx_openblas_ownblash" = xyes; then
+      LIBS="$acx_openblas_libopt $ac_cv_search_LAPACKE_dpotrf"
+      AC_MSG_CHECKING([for openblas_set_num_threads])
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <$acx_openblas_blash>]],
+	[[openblas_set_num_threads(1);]])],
+        [AC_MSG_RESULT([yes])
+         AC_DEFINE(HAVE_OPENBLASP,1,
+		[Define if the number of OpenBLAS threads can be set.])],
+        [AC_MSG_RESULT([no])
+         OPENBLAS_WARN="openblas_set_num_threads() not found: the number of OpenBLAS threads cannot be set!"])
+    else
+      OPENBLAS_WARN="OpenBLAS's cblas.h not found: the number of OpenBLAS threads cannot be set!"
+    fi
   fi
   LIBS="$OLIBS"
 fi
