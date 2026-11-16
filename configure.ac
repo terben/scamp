@@ -80,42 +80,44 @@ AC_MSG_CHECKING([if compilation flags are set automatically])
 AC_ARG_ENABLE(auto-flags,
 	[AS_HELP_STRING([--enable-auto-flags],
 	[Let the configure script choose the compilation flags (default = no)])],
-	AC_MSG_RESULT([yes]),
-	AC_MSG_RESULT([no]))
+	[], [enable_auto_flags="no"])
+AC_MSG_RESULT([$enable_auto_flags])
 
 # Provide special option for the Linux Intel C "classic" compiler
 AC_MSG_CHECKING([whether the classic INTEL compiler is enabled])
 AC_ARG_ENABLE(icc,
 	[AS_HELP_STRING([--enable-icc],
 	[Use the Intel compiler (default = no)])],
-        CC="icc"
-        enable_iccx="yes"
-	AC_MSG_RESULT([yes]),
-	AC_MSG_RESULT([no]))
+	[], [enable_icc="no"])
+AC_MSG_RESULT([$enable_icc])
+AS_IF([test "x$enable_icc" = xyes], [CC="icc"])
 
 # Provide special option for the Linux Intel OneAPI C compiler
 AC_MSG_CHECKING([whether the INTEL compiler is enabled])
 AC_ARG_ENABLE(icx,
 	[AS_HELP_STRING([--enable-icx],
 	[Use the Intel compiler (default = no)])],
-        CC="icx"
-        enable_iccx="yes"
-	AC_MSG_RESULT([yes]),
-	AC_MSG_RESULT([no]))
+	[], [enable_icx="no"])
+AC_MSG_RESULT([$enable_icx])
+AS_IF([test "x$enable_icx" = xyes], [CC="icx"])
 
 # Provide special options for INTEL MKL
-# We use icc if available, if not Intel OneAPI's icx
+# Unless a compiler was chosen (CC=..., --enable-icc or --enable-icx), we use
+# Intel OneAPI's icx if available, if not the classic icc, if not cc
 # (we don't use AC_PROG_CC as it does not play nice
 # in a conditional block)
 AC_MSG_CHECKING([whether INTEL's MKL is enabled])
 AC_ARG_ENABLE(mkl,
 	[AS_HELP_STRING([--enable-mkl],
 	[Use INTEL's MKL for solvers and FFTs (default = no)])],
-	    AC_MSG_RESULT([yes])
-        CC=""
-        [AC_CHECK_PROGS(CC, [icc icx cc])]
-        AS_CASE([$CC], [icc|icx], [enable_iccx="yes"]),
-	AC_MSG_RESULT([no]))
+	[], [enable_mkl="no"])
+AC_MSG_RESULT([$enable_mkl])
+AS_IF([test "x$enable_mkl" = xyes && test "x$CC" = x],
+	[AC_CHECK_PROGS(CC, [icx icc cc])])
+
+# Flag the INTEL compilers, however they were selected
+acx_cc_name=`echo "$CC" | sed 's/ .*//;s|.*/||'`
+AS_CASE([$acx_cc_name], [icc|icx], [enable_iccx="yes"], [enable_iccx="no"])
 
 # Checks for programs.
 AC_LANG(C)
@@ -197,8 +199,8 @@ AC_MSG_CHECKING([whether OpenBLAS is enabled])
 AC_ARG_ENABLE(openblas,
 	[AS_HELP_STRING([--enable-openblas],
 	[Use the OpenBLAS library instead of ATLAS (default = no)])],
-	AC_MSG_RESULT([yes]),
-	AC_MSG_RESULT([no]))
+	[], [enable_openblas="no"])
+AC_MSG_RESULT([$enable_openblas])
 AC_ARG_WITH(openblas-libdir,
 	[AS_HELP_STRING([--with-openblas-libdir=<OpenBLAS library path>],
 	[Provide an alternative path to the OpenBLAS library])])
@@ -211,8 +213,8 @@ AC_MSG_CHECKING([whether PLPlot is enabled])
 AC_ARG_ENABLE(plplot,
 	[AS_HELP_STRING([--enable-plplot],
 	[Use the PLPlot library (default = yes)])],
-	AC_MSG_RESULT([yes]),
-	AC_MSG_RESULT([no]))
+	[], [enable_plplot="yes"])
+AC_MSG_RESULT([$enable_plplot])
 AC_ARG_WITH(plplot-libdir,
 	[AS_HELP_STRING([--with-plplot-libdir=<PLPlot library path>],
 	[Provide an alternative path to the PLPlot library])])
@@ -250,8 +252,8 @@ AC_MSG_CHECKING([for profiler mode])
 AC_ARG_ENABLE(profiling,
 	[AS_HELP_STRING([--enable-profiling],
 	[Enable special mode for profiling (default = no)])],
-	AC_MSG_RESULT([yes]),
-	AC_MSG_RESULT([no]))
+	[], [enable_profiling="no"])
+AC_MSG_RESULT([$enable_profiling])
 
 # Enable linking options for making the executable as portable as possible.
 AC_MSG_CHECKING([best linking option])
@@ -259,8 +261,8 @@ AC_ARG_ENABLE(best-link,
 	[AS_HELP_STRING([--enable-best-link],
 	[Choose the right combination of static and dynamic linking to make \
 the executable as portable as possible (default = no)])],
-	AC_MSG_RESULT([yes]),
-	AC_MSG_RESULT([no]))
+	[], [enable_best_link="no"])
+AC_MSG_RESULT([$enable_best_link])
 
 ################# Actions to complete in case of multhreading ################
 AC_DEFINE_UNQUOTED(THREADS_NMAX, $n_pthreads,[Maximum number of POSIX threads])
@@ -376,7 +378,7 @@ AC_SUBST(AM_LDFLAGS)
 AC_MSG_RESULT([***************************************************************])
 AC_MSG_RESULT([Compile cmdline:  $CC $AM_CPPFLAGS $CPPFLAGS $AM_CFLAGS $CFLAGS])
 AC_MSG_RESULT([Link    cmdline:  $CC $AM_LDFLAGS $LDFLAGS $LIBS])
-AC_MSG_RESULT([Default XSLT URL: $xsl_url])
+AC_MSG_RESULT([Default XSLT URL: $with_xsl_url])
 AC_MSG_RESULT([***************************************************************])
 
 AC_CONFIG_FILES([
