@@ -60,3 +60,4 @@
 /tests/*.head
 /tests/extra/*.head
 /tests/*.xml
+/tests/test_synthetic01.d/
