@@ -4962,7 +4962,7 @@ int	cplot_xpixerrhisto2d(fgroupstruct **fgroups, int ngroup, int instru)
   plcol0(15);
   plenv((PLFLT)xmin, (PLFLT)xmax, (PLFLT)ymin, (PLFLT)ymax, 1, -1);
   sprintf(str, "#uInstrument A%d: pixel coordinate residuals (x)",
-	field->astromlabel+1);
+	field0->astromlabel+1);
   pllab("","", str);
   CPLOT_PLWID(0);
   plcol0(7);
@@ -5227,7 +5227,7 @@ int	cplot_ypixerrhisto2d(fgroupstruct **fgroups, int ngroup, int instru)
   plcol0(15);
   plenv((PLFLT)xmin, (PLFLT)xmax, (PLFLT)ymin, (PLFLT)ymax, 1, -1);
   sprintf(str, "#uInstrument A%d: pixel coordinate residuals (y)",
-	field->astromlabel+1);
+	field0->astromlabel+1);
   pllab("","", str);
   CPLOT_PLWID(0);
   plcol0(7);

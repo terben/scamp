@@ -248,14 +248,14 @@ void	astrsolve_fgroups(fgroupstruct **fgroups, int nfgroup) {
                     || !strcmp(contextname[c], "XPSF_IMAGE")
                     || !strcmp(contextname[c], "XMODEL_IMAGE")
                     || !strcmp(contextname[c], "XPEAK_IMAGE")
-                    || !strcmp(set->contextname[c], prefs.centroid_key[0]))
+                    || !strcmp(contextname[c], prefs.centroid_key[0]))
                 cx = c;
             else if (!strcmp(contextname[c], "Y_IMAGE")
                     || !strcmp(contextname[c], "YWIN_IMAGE")
                     || !strcmp(contextname[c], "YPSF_IMAGE")
                     || !strcmp(contextname[c], "YMODEL_IMAGE")
                     || !strcmp(contextname[c], "YPEAK_IMAGE")
-                    || !strcmp(set->contextname[c], prefs.centroid_key[1]))
+                    || !strcmp(contextname[c], prefs.centroid_key[1]))
                 cy = c;
         }
     }
@@ -1631,8 +1631,8 @@ void	reproj_fgroup(fgroupstruct *fgroup, fieldstruct *reffield, int propflag)
     projposmax = fgroup->projposmax;
     for (i=0; i<naxis; i++)
     {
-        projposmin[i] = projposmin[i] = BIG;
-        projposmax[i] = projposmax[i] = -BIG;
+        projposmin[i] = BIG;
+        projposmax[i] = -BIG;
     }
 
     for (f=0; f<nfield; f++)

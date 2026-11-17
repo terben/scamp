@@ -271,7 +271,7 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
       else
         mergedsample.mag[p] = mergedsample.magerr[p]
 		= mergedsample.magdisp[p] = 99.0;
-        mergedsample.nmag[p] = nmag[p];
+      mergedsample.nmag[p] = nmag[p];
       }
 
     mergedsample.colour = msamp->colour;

@@ -285,7 +285,7 @@ VERSION	09/11/2002
  ***/
 void	shiftcube(float *data, int naxis, int *size)
   {
-   unsigned int	*pointl, *pointh;
+   unsigned int	*pointl, *pointh, tmp;
    int		d, i, j, nchunk, npix;
 
   for (d=1; d<=naxis; d++)
@@ -301,7 +301,11 @@ void	shiftcube(float *data, int naxis, int *size)
       pointl = (unsigned int *)data +j*npix;
       pointh = pointl+npix/2;
       for (i=npix/2; i--; pointh++, pointl++)
-        *pointl ^= (*pointh^=(*pointl^=*pointh));
+        {
+        tmp = *pointl;
+        *pointl = *pointh;
+        *pointh = tmp;
+        }
       }
     }
 
