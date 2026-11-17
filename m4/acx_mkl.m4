@@ -237,7 +237,7 @@ dnl Static linking
       AC_SUBST(MKL_LIBS,
 	["$startgroup,$mklroot/lib/intel64/libmkl_intel_ilp64.a,\
 $mklroot/lib/intel64/libmkl_intel_thread.a,\
-$mklroot/lib/intel64/libmkl_core.a,-end-group -lpthread -lm"])
+$mklroot/lib/intel64/libmkl_core.a,--end-group -lpthread -lm"])
       else
 dnl Dynamic linking
         AC_SUBST(MKL_LDFLAGS, "-qmkl-ilp64")
@@ -249,14 +249,14 @@ dnl 32 bit pointers
       AC_SUBST(MKL_CFLAGS, "-qopenmp -I$mklroot/include")
       if test x$3 = xyes; then
 dnl Static linking
-        AC_SUBST(MKL_LDFLAGS, "-qmkl-ilp64 -static-intel")
+        AC_SUBST(MKL_LDFLAGS, "-qmkl -static-intel")
         AC_SUBST(MKL_LIBS,
 		["$startgroup,$mklroot/lib/intel64/libmkl_intel_lp64.a,\
 $mklroot/lib/intel64/libmkl_intel_thread.a,\
 $mklroot/lib/intel64/libmkl_core.a,--end-group -lpthread -lm"])
       else
 dnl Dynamic linking
-        AC_SUBST(MKL_LDFLAGS, "-qmkl-ilp64")
+        AC_SUBST(MKL_LDFLAGS, "-qmkl")
         AC_SUBST(MKL_LIBS, "-L$mklroot/lib/intel64 -lmkl_intel_lp64 \
 	-lmkl_intel_thread -lmkl_core -lpthread -lm")
       fi
