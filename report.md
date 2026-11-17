@@ -425,3 +425,37 @@ Vor den Korrekturen ergab `make check` mit ASan/UBSan 4/6. Die beiden Crossid-Te
   LDFLAGS="-fsanitize=address,undefined"
 ASAN_OPTIONS=detect_leaks=0 make check
 ```
+
+## 10. Warnungsfreier Build mit `-Wall` (Branch `wall_clean`)
+
+Stand: 17.11.2026. Ziel: Der Build mit `-Wall` soll ohne Warnungen durchlaufen, damit neue Warnungen sofort auffallen. Gleichzeitig sollen die Änderungen klein und thematisch getrennt bleiben, damit Upstream-Änderungen weiter übernommen werden können.
+
+### Vorgehen
+
+- Gebaut wurde mit `-Wall` in drei Konfigurationen: gcc + MKL; gcc + OpenBLAS; gcc + OpenBLAS ohne Threads und ohne PLplot. Entfernt wurde nur, was in **allen** Konfigurationen ungenutzt ist. Variablen, die nur mit Threads gebraucht werden, stehen jetzt unter `USE_THREADS`.
+- Gegenprobe mit clang 14, icx 2026.2 (jeweils `-Wall`) und gcc mit `-fsanitize=address,undefined`.
+- Jede Kategorie ist ein eigener Commit. Nach jedem Schritt lief `make check` (6/6).
+- Zusätzlich ein Lauf mit Eigenbewegungen und `SAVE_DGEOMAP Y`. Die Differential-Geometry-Map ist gegenüber `master` bis auf Thread-Rauschen (≈ 4·10⁻⁹) identisch.
+
+| Vorher (gcc 11, `-Wall`) | Nachher |
+|---|---|
+| 234 Warnungen | 1 (`maxflag` in `invert_wcs()`, s. u.) |
+
+### Commits
+
+| Commit | Inhalt |
+|---|---|
+| `2cffbb1` | Ungenutzte lokale Variablen und zwei ungenutzte `static`-Funktionen entfernt. |
+| `d0963c9` | Variablen entfernt, die gesetzt, aber nie gelesen werden, samt Code, der nur sie berechnet hat (z. B. Pixelskalen und Beschriftungspositionen in Check-Plots, deren Verwendung upstream auskommentiert ist). |
+| `96615e4` | **Fehler:** Der Check-Plot `ASTR_REFPROPER` zeigte auf beiden Achsen die gemessene Eigenbewegung und damit immer eine Diagonale. Er war seit Upstream-Commit `c394c7b` ohne Aussagekraft. Die x-Achse zeigt wieder den Referenzkatalog. |
+| `5d3f006` | `-Wunknown-pragmas` für die Intel-Pragmas (`ivdep`, `nounroll`) lokal in den zwei betroffenen Dateien abgeschaltet. Eine zentrale Lösung über `configure` funktioniert mit clang nicht, weil dort ein späteres `-Wall` im `CFLAGS` gewinnt. |
+| `cf423a9` | `snprintf`/`strftime`/`memcpy` statt ungeprüfter Kopien. **Fehler:** Die Fortschrittsmeldung in `astrsolve.c` lief ab 1000 Feldern pro Gruppe über (`str[64]`). In `fitswrite()` liefen String-Werte ab 79 Zeichen über. Dazu `sprintf` mit überlappenden Puffern in `fitscat.c` und eine Längenprüfung für den Namen der Swap-Datei. |
+| `5774999` | „Möglicherweise uninitialisiert“: `lng`/`lat` für den Referenzkatalog in `astrsolve.c` aus dem richtigen Set. Einspaltige bzw. einzeilige Karten in `dgeomap.c` sind jetzt definiert. Sonst Zeiger-Initialisierungen bei Fehlalarmen. |
+| `3ab2acb` | Rückgabewert von `system()` beim Anti-Aliasing auswerten (Warnung bei Fehler), `QMEMCPY` auf ein lokales Array, fehlende Klammern in `preflist.h`. |
+| `4f0b923` | Von clang/icx und gcc `-O1` zusätzlich gemeldet: **Überlauf** beim Anhängen von `_<Gruppe>` an `MERGEDOUTCAT_NAME`, `FULLOUTCAT_NAME` und `DGEOMAP_NAME` bei sehr langen Namen; außerdem zwei Zähler, die nur hochgezählt werden. |
+
+### Offen bzw. zu entscheiden
+
+- **`invert_wcs()` (`fitswcs.c`):** Die polynomiale Inversion ist upstream auskommentiert. Trotzdem tastet die Funktion bei jedem Aufruf (bei TNX bzw. PV-Projektionen) ein Gitter ab und prüft die Genauigkeit. Das Ergebnis (`maxflag`) wird nicht verwendet, die zugehörige Warnung ist auskommentiert. Das ist die letzte `-Wall`-Warnung. Optionen: die Warnung wieder einschalten, die tote Berechnung entfernen (spart Rechenzeit, größerer Eingriff in Upstream-Code) oder so lassen.
+- **Eigenbewegungskorrektur in `astrsolve.c:1661/1708`:** `properr2 = wcsprop²·wcschi2` verwendet die Eigenbewegung selbst statt ihres Fehlers (`wcsproperr`). Der Gewichtungsfaktor `prop²/(prop²+properr2)` wird so zu `1/(1+χ²)`, unabhängig von der gemessenen Unsicherheit. Das sieht nach einem Tippfehler aus (vgl. `astrefcat.c:925`, wo `properr` verwendet wird). Es ist aber eine fachliche Frage und wurde nicht geändert.
+- **`photsolve.c`:** Die Koeffizienten-Arrays `*2` (Offsets pro Set, `offlag`) werden gefüllt, aber nie in die Matrix übernommen. Offenbar ist das Feature unvollständig. Es wurden nur die toten Zuweisungen entfernt.
