@@ -271,6 +271,90 @@ void	adjust_set(fieldstruct **fields, int nfield, int s)
   }
 
 
+/****** shift_tpv ************************************************************
+PROTO	int shift_tpv(wcsstruct *wcs, double *dred)
+PURPOSE	Move the origin of the TPV distortion polynomials to the reduced
+	coordinates dred: P(x) -> Q(x) = P(x+dred) - P(dred).
+INPUT	ptr to the WCS structure,
+	shift in reduced (intermediate) coordinates.
+OUTPUT	RETURN_OK if the polynomials were shifted, RETURN_ERROR if they
+	contain terms that cannot be shifted (radial terms).
+NOTES	Exact for the polynomial terms (Taylor shift). The constant terms
+	of Q are zero, so that the new reference pixel maps onto the new CRVAL.
+AUTHOR	T. Erben, Claude
+VERSION	17/11/2026
+ ***/
+static int	shift_tpv(wcsstruct *wcs, double *dred)
+  {
+   static const int pvindex[8][8] =	{
+	{0,1,4,7,12,17,24,31},
+	{2,5,8,13,18,25,32,0},
+	{6,9,14,19,26,33,0,0},
+	{10,15,20,27,34,0,0,0},
+	{16,21,28,35,0,0,0,0},
+	{22,29,36,0,0,0,0,0},
+	{30,37,0,0,0,0,0,0},
+	{38,0,0,0,0,0,0,0}};
+   static const int radial[4] = {3, 11, 23, 39};
+   double	pa[8][8], pb[8][8], binom[8][8], powx[8], powy[8],
+		*projp, dx, dy;
+   int		axis[2], d, i,j,k,l, p, idx;
+
+  axis[0] = wcs->lng;
+  axis[1] = wcs->lat;
+  projp = wcs->projp;
+  for (d=0; d<2; d++)
+    {
+    for (p=0; p<4; p++)
+      if (projp[radial[p]+100*axis[d]] != 0.0)
+        return RETURN_ERROR;
+    for (p=40; p<100; p++)
+      if (projp[p+100*axis[d]] != 0.0)
+        return RETURN_ERROR;
+    }
+
+  for (i=0; i<8; i++)
+    for (k=0; k<8; k++)
+      binom[i][k] = (k==0 || k==i)? 1.0
+			: (k<i? binom[i-1][k-1] + binom[i-1][k] : 0.0);
+  dx = dred[axis[0]];
+  dy = dred[axis[1]];
+  powx[0] = powy[0] = 1.0;
+  for (i=1; i<8; i++)
+    {
+    powx[i] = powx[i-1]*dx;
+    powy[i] = powy[i-1]*dy;
+    }
+
+  for (d=0; d<2; d++)
+    {
+/*-- pa[i][j]: coefficient of x^i y^j (x = lng, y = lat reduced coords); */
+/*-- the lat axis polynomial has the roles of x and y swapped in TPV */
+    for (i=0; i<8; i++)
+      for (j=0; j<8; j++)
+        pa[i][j] = (i+j<8)?
+		projp[(d? pvindex[i][j] : pvindex[j][i]) + 100*axis[d]] : 0.0;
+    for (k=0; k<8; k++)
+      for (l=0; k+l<8; l++)
+        {
+        pb[k][l] = 0.0;
+        for (i=k; i<8; i++)
+          for (j=l; i+j<8; j++)
+            pb[k][l] += pa[i][j]*binom[i][k]*binom[j][l]*powx[i-k]*powy[j-l];
+        }
+    pb[0][0] = 0.0;
+    for (k=0; k<8; k++)
+      for (l=0; k+l<8; l++)
+        {
+        idx = d? pvindex[k][l] : pvindex[l][k];
+        projp[idx+100*axis[d]] = pb[k][l];
+        }
+    }
+
+  return RETURN_OK;
+  }
+
+
 /****** crval_to_crpix *******************************************************
 PROTO	void crval_to_crpix(wcsstruct *wcs, double *wcspos)
 PURPOSE	Keep a WCS projection approx. the same but with a new CRVAL.
@@ -278,12 +362,17 @@ INPUT	ptr to the WCS structure,
 	new CRVAL vector.
 OUTPUT	-.
 NOTES	The updated WCS is an approximation of the exact one.
+	The new CRPIX is the pixel of the new CRVAL in the old WCS; TPV
+	distortion polynomials are shifted accordingly (shift_tpv()).
+	Before, the polynomials were kept unchanged, so that their constant
+	terms were applied twice (offsets of up to arcseconds for
+	MOSAIC_TYPE LOOSE and FIX_FOCALPLANE with PV1_0/PV2_0 != 0).
 AUTHOR	E. Bertin (IAP)
-VERSION	14/05/2014
+VERSION	17/11/2026
  ***/
 void	crval_to_crpix(wcsstruct *wcs, double *wcspos)
   {
-   double	rawpos[NAXIS], a[NAXIS*NAXIS],b[NAXIS*NAXIS],
+   double	rawpos[NAXIS], redpos[NAXIS], a[NAXIS*NAXIS],b[NAXIS*NAXIS],
 		*c,*at,
 		val, cas, sas, angle, dlng;
    int		i,j,k, lng,lat, naxis;
@@ -293,6 +382,15 @@ void	crval_to_crpix(wcsstruct *wcs, double *wcspos)
   naxis = wcs->naxis;
 
   wcs_to_raw(wcs, wcspos, rawpos);
+
+/* Move the origin of the distortion polynomials to the new reference pixel */
+  if (lng != lat && wcs->nprojp)
+    {
+    raw_to_red(wcs, rawpos, redpos);
+    if (shift_tpv(wcs, redpos) != RETURN_OK)
+      warning("radial or high-order PV terms: ",
+	"mosaic adjustment may be inaccurate");
+    }
 
   if (lng != lat)
     {
