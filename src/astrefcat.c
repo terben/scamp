@@ -894,7 +894,8 @@ fieldstruct	*get_astreffield(astrefenum refcat, double *wcspos,
           break;
 
         case ASTREFCAT_PANSTARRS1:
-          if (atoi(cols[cindex++]) & 4 == 0)	// Test PS1 reliability
+          // Keep only good-quality measurements (QF_OBJ_GOOD flag)
+          if ((atoi(cols[cindex++]) & 4) == 0)
             continue;
           alpha = atof(cols[cindex++]);
           delta = atof(cols[cindex++]);
