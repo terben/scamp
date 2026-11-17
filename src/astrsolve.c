@@ -1658,7 +1658,7 @@ void	reproj_fgroup(fgroupstruct *fgroup, fieldstruct *reffield, int propflag)
                     for (i=0; i<naxis; i++)
                     {
                         wcspos[i] = samp->wcspos[i];
-                        if ((properr2=msamp->wcsprop[i]*msamp->wcsprop[i]*msamp->wcschi2) > TINY
+                        if ((properr2=msamp->wcsproperr[i]*msamp->wcsproperr[i]*msamp->wcschi2) > TINY
                                 && (prop2=msamp->wcsprop[i]*msamp->wcsprop[i]) > TINY)
                         {
                             rprop = msamp->wcsprop[i] * prop2 / (prop2 + properr2);
@@ -1705,7 +1705,7 @@ void	reproj_fgroup(fgroupstruct *fgroup, fieldstruct *reffield, int propflag)
                 for (i=0; i<naxis; i++)
                 {
                     wcspos[i] = samp->wcspos[i];
-                    if ((properr2=msamp->wcsprop[i]*msamp->wcsprop[i]*msamp->wcschi2) > TINY
+                    if ((properr2=msamp->wcsproperr[i]*msamp->wcsproperr[i]*msamp->wcschi2) > TINY
                             && (prop2=msamp->wcsprop[i]*msamp->wcsprop[i]) > TINY)
                     {
                         rprop = msamp->wcsprop[i] * prop2 / (prop2 + properr2);
