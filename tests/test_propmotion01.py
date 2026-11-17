@@ -4,8 +4,9 @@
 Synthetic proper motion test: generate multi-epoch catalogues of moving
 stars (gen_synth_pm.py), run SCAMP with COMPUTE_PROPERMOTIONS, with and
 without the reference catalogue in the proper motion fit
-(INCLUDE_ASTREFCATALOG Y/N), and with ASTREFPROP_CORRECT Y, and compare
-the measured proper motions of the merged sources with the truth.
+(INCLUDE_ASTREFCATALOG Y/N), with ASTREFPROP_CORRECT Y, and with
+ASTREFPROP_CORRECT Y plus CORRECT_PROPERMOTIONS Y, and compare the
+measured proper motions of the merged sources with the truth.
 """
 import os, subprocess, sys, warnings
 import numpy as np
@@ -21,10 +22,14 @@ D2R = np.pi / 180
 MAX_ZERO_FRAC = 0.01
 MAX_MAD = 6.0
 SLOPE_TOL = 0.05
-# With ASTREFPROP_CORRECT Y the drift is anchored by the reference catalog
-# proper motions: the scatter for reference stars drops from about 3 to
-# about 1-1.5 mas/yr.
-MAX_MAD_REFCORR = 2.0
+# Robust scatter for reference stars, quadratic mean of both axes. Without
+# correction it is about 1.9 mas/yr. With ASTREFPROP_CORRECT Y the drift is
+# anchored by the reference catalog proper motions (about 1.1 mas/yr);
+# correcting the remaining detections for their measured proper motions
+# as well (CORRECT_PROPERMOTIONS Y) brings it down to about 0.7 mas/yr
+# (about 1.5 mas/yr if the 3rd astrometric solution were not clipped).
+MAX_MAD_REFCORR = 1.5
+MAX_MAD_PMCORR = 0.9
 
 def run(cmd, **kw):
   print("+", " ".join(cmd))
@@ -74,9 +79,12 @@ cats = ["exp%d.cat" % i for i in range(1, len(truth["epochs"]) + 1)]
 fast_t = (np.abs(truth["pmra"]) > 15) | (np.abs(truth["pmde"]) > 15)
 ok = True
 
-for inc, refcorr in (("Y", "N"), ("N", "N"), ("Y", "Y")):
-  tag = "inc" + inc + ("_refcorr" if refcorr == "Y" else "")
-  label = inc + ("+REFCORR" if refcorr == "Y" else "")
+for inc, refcorr, pmcorr in (("Y", "N", "N"), ("N", "N", "N"),
+                             ("Y", "Y", "N"), ("Y", "Y", "Y")):
+  tag = "inc" + inc + ("_refcorr" if refcorr == "Y" else "") \
+        + ("_pmcorr" if pmcorr == "Y" else "")
+  label = inc + ("+REFCORR" if refcorr == "Y" else "") \
+        + ("+PMCORR" if pmcorr == "Y" else "")
   ret = run([scamp] + cats + ["-c", "default.scamp",
     "-ASTREF_CATALOG", "FILE", "-ASTREFCAT_NAME", "ref.cat",
     "-ASTREFCENT_KEYS", "X_WORLD,Y_WORLD",
@@ -88,11 +96,11 @@ for inc, refcorr in (("Y", "N"), ("N", "N"), ("Y", "Y")):
     "-ASTRINSTRU_KEY", "FILTER", "-PHOTINSTRU_KEY", "FILTER",
     "-DISTORT_DEGREES", "3", "-CHECKPLOT_TYPE", "NONE",
     "-COMPUTE_PROPERMOTIONS", "Y", "-INCLUDE_ASTREFCATALOG", inc,
-    "-ASTREFPROP_CORRECT", refcorr,
+    "-ASTREFPROP_CORRECT", refcorr, "-CORRECT_PROPERMOTIONS", pmcorr,
     "-MERGEDOUTCAT_TYPE", "FITS_LDAC", "-MERGEDOUTCAT_NAME", tag + ".cat",
     "-XML_NAME", tag + ".xml", "-VERBOSE_TYPE", "NORMAL"], cwd=outdir)
-  if not report("SCAMP execution (INCLUDE_ASTREFCATALOG %s, ASTREFPROP_CORRECT %s)"
-                % (inc, refcorr), ret == 0):
+  if not report("SCAMP execution (INCLUDE_ASTREFCATALOG %s, ASTREFPROP_CORRECT %s,"
+                " CORRECT_PROPERMOTIONS %s)" % (inc, refcorr, pmcorr), ret == 0):
     ok = False
     continue
 
@@ -106,6 +114,7 @@ for inc, refcorr in (("Y", "N"), ("N", "N"), ("Y", "Y")):
   print("%d merged sources with >= 5 detections matched to the truth" % len(m))
 
   zero = np.mean((pma == 0.0) & (pmd == 0.0))
+  sref = []
   ok &= report("[%s] sources without proper motion: %.1f%% (< %.0f%%)"
                % (label, 100 * zero, 100 * MAX_ZERO_FRAC), zero < MAX_ZERO_FRAC)
   for axis, meas, true in (("PMALPHA", pma, truth["pmra"][i]),
@@ -117,10 +126,14 @@ for inc, refcorr in (("Y", "N"), ("N", "N"), ("Y", "Y")):
     slope = np.polyfit(true[f], meas[f], 1)[0]
     ok &= report("[%s] %s slope for fast movers: %.3f (1 +/- %.2f)"
                  % (label, axis, slope, SLOPE_TOL), abs(slope - 1) < SLOPE_TOL)
-    if refcorr == "Y":
-      r = truth["mag"][i] < 20.0          # stars in the reference catalog
-      s = mad(meas[r] - true[r])
-      ok &= report("[%s] %s robust scatter, reference stars: %.2f mas/yr (< %.1f)"
-                   % (label, axis, s, MAX_MAD_REFCORR), s < MAX_MAD_REFCORR)
+    r = truth["mag"][i] < 20.0            # stars in the reference catalog
+    sref.append(mad(meas[r] - true[r]))
+  print("[%s] robust scatter for reference stars: %.2f / %.2f mas/yr"
+        % (label, sref[0], sref[1]))
+  if refcorr == "Y":
+    q = np.sqrt(np.mean(np.square(sref)))
+    lim = MAX_MAD_PMCORR if pmcorr == "Y" else MAX_MAD_REFCORR
+    ok &= report("[%s] reference stars, both axes: %.2f mas/yr (< %.1f)"
+                 % (label, q, lim), q < lim)
 
 sys.exit(0 if ok else 1)
