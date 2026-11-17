@@ -330,6 +330,8 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
     write_xml_meta(ascfile, NULL);
     fprintf(ascfile, "</RESOURCE>\n");
     fprintf(ascfile, "</VOTABLE>\n");
+    if (!prefs.mergedcatpipe_flag)
+      fclose(ascfile);
     }
   else
     end_writeobj(cat, objtab, buf);
@@ -570,6 +572,8 @@ void	writefullcat_fgroup(char *filename, fgroupstruct *fgroup)
     write_xml_meta(ascfile, NULL);
     fprintf(ascfile, "</RESOURCE>\n");
     fprintf(ascfile, "</VOTABLE>\n");
+    if (!prefs.fullcatpipe_flag)
+      fclose(ascfile);
     }
   else
     end_writeobj(cat, objtab, buf);

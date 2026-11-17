@@ -1344,6 +1344,8 @@ setstruct *read_astrefsamples(setstruct *set, tabstruct *tab, char *rfilename,
   dxm = dym = dxpm = dypm = dxpmerr = dypmerr = dmag = derra = derrb \
 	= dmagerr = NULL;
   xm = ym = xpm = ypm = xpmerr = ypmerr = mag = erra = errb = magerr = NULL;
+  dobsdate = NULL;
+  obsdate = NULL;
   maxradius2 = maxradius*maxradius;
   dfac = (lng!=lat)? cos(wcspos[lat]*DEG) : 1.0;
 
@@ -1448,6 +1450,13 @@ setstruct *read_astrefsamples(setstruct *set, tabstruct *tab, char *rfilename,
   else
     mag = (float *)key->ptr;
 
+/* Check that catalog contains enough bands if needed */
+  if (band && (!key->naxis || band>=*key->naxisn))
+    {
+    sprintf(str, "*Error*: band #%d not found in catalog ", band+1);
+    error(EXIT_FAILURE, str, rfilename);
+    }
+
   if (!(key = name_to_key(keytab, prefs.astrefmagerr_key)))
     {
     sprintf(str, "%s parameter not found in catalog ", prefs.astrefmagerr_key);
@@ -1465,8 +1474,6 @@ setstruct *read_astrefsamples(setstruct *set, tabstruct *tab, char *rfilename,
     {
     sprintf(str, "%s parameter not found in catalog ", prefs.astrefobsdate_key);
     warning(str, rfilename);
-    dobsdate = NULL;
-    obsdate = NULL;
     }
   else
     {
@@ -1474,13 +1481,6 @@ setstruct *read_astrefsamples(setstruct *set, tabstruct *tab, char *rfilename,
       dobsdate = (double *)key->ptr;
     else
       obsdate = (float *)key->ptr;
-    }
-
-/* Check that catalog contains enough bands if needed */
-  if (band && (!key->naxis || band>=*key->naxisn))
-    {
-    sprintf(str, "*Error*: band #%d not found in catalog ", band+1);
-    error(EXIT_FAILURE, str, rfilename);
     }
 
   if (!(key = name_to_key(keytab, "FLAGS")))

@@ -76,7 +76,7 @@ int	dgeomap_instru(fieldstruct **fields, int nfield, int instru,
 			val0, val1, stepout, coeff, coeff0;
    unsigned short	sexflagmask;
    unsigned int		imaflagmask;
-   char			str[64];
+   char			str[MAXCHAR];
    int			d,f,g,i,j,k,n,p,s, naxis, npixinx, npixiny, npixin,
 			npixoutx, npixouty, npixout, nset,
 			ngeopoint, ngeopointmax, nneighbour, stepin, nlineout;
@@ -116,7 +116,7 @@ int	dgeomap_instru(fieldstruct **fields, int nfield, int instru,
 
 // Compute the 2D astrometric residual histogram for every set
   for (s=0; s<nset; s++) {
-    sprintf(str,
+    snprintf(str, sizeof(str),
 	"Generating differential geometry map for instrument A%d, set %d/%d",
 	instru+1, s+1, nset);
     NFPRINTF(OUTPUT, str);

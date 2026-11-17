@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../src/crossid.h"
 #include "../src/field.h"
@@ -22,27 +23,31 @@ static int
 realloc_samples_x(setstruct *set, int splsize)
 {
     set->sample = realloc(set->sample, sizeof(samplestruct) * splsize * 2);
+    assert(set->sample);
+    /* CrossId relies on zeroed samples (e.g. prevsamp/nextsamp) */
+    memset(set->sample + splsize, 0, sizeof(samplestruct) * splsize);
     return splsize * 2;
 }
 
 static fieldstruct*
 load_ascii_field(int id)
 {
-    fieldstruct *field = malloc(sizeof(fieldstruct));
+    fieldstruct *field = calloc(1, sizeof(fieldstruct));
     field->lng = 0;
     field->lat = 1;
     field->fieldindex = id;
-    setstruct *set = malloc(sizeof(setstruct));
+    setstruct *set = calloc(1, sizeof(setstruct));
     int splsize = 1000;
     set->setindex = 0;
     set->nsample = 0;
-    set->sample = malloc(sizeof(samplestruct) * splsize);
+    set->sample = calloc(splsize, sizeof(samplestruct));
     field->nset = 1;
-    field->set = malloc(sizeof(void*));
+    field->set = calloc(1, sizeof(void*));
     field->set[0] = set;
     set->field = field;
 
     FILE *cat = fopen(testfile, "r");
+    assert(cat);
     int index;
     double x, y;
     while ((fscanf(cat, "%i %lf %lf\n", &index, &x, &y) == 3)) {
@@ -54,6 +59,7 @@ load_ascii_field(int id)
         spl->set = set;
         spl->epoch = 1.0;
     }
+    fclose(cat);
     return field;
 
 }
@@ -120,6 +126,7 @@ main(int argc, char **argv)
     fieldstruct *fields[10];
     fieldstruct **rfields;
     fgroupstruct fg;
+    memset(&fg, 0, sizeof(fg));
     fg.field = fields;
     fg.nfield = 10;
 

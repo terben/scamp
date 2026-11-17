@@ -71,16 +71,14 @@ typedef struct
   double	fwhm_thresh[2];		/* Minimum and maximum FWHM allowed */
   int		nfwhm_thresh;		/* nb of params */
   double	maxellip;		/* Maximum ellipticity allowed */
-  unsigned short sexflags_mask;		/* Rejection mask on SEx FLAGS */
-  unsigned short wflags_mask;		/* Rej. mask on SEx FLAGS_WEIGHT */
+  unsigned int	sexflags_mask;		/* Rejection mask on SEx FLAGS */
+  unsigned int	wflags_mask;		/* Rej. mask on SEx FLAGS_WEIGHT */
   unsigned int	imaflags_mask;		/* Rejection mask on SEx IMAFLAG_ISO */
 
 /* Reference catalogs */
   astrefenum	astrefcat;		/* Reference catalog */
   char		*(ref_server[MAX_SERVER]);/* IP addresses of ref cat servers */
   int           nref_server;		/* nb of params */
-  int		ref_ntries[MAX_SERVER];	/* nb of tries per server */
-  int           nref_ntries;		/* nb of params */
   double	ref_timeout[MAX_SERVER];/* Timeout of ref. cat. servers in s */
   int           nref_timeout;		/* nb of params */
   char		*(astref_name[MAXNGROUP]);/* Astrometric ref. cat. filenames */
@@ -164,7 +162,7 @@ typedef struct
   int		nmagzero_interr;		/* nb of params */
   double	magzero_referr[MAXPHOTINSTRU];	/* Photom.field ZP error RMS */
   int		nmagzero_referr;		/* nb of params */
-  unsigned short phot_sexflagsmask;		/* Photom. mask on SEx FLAGS */
+  unsigned int	phot_sexflagsmask;		/* Photom. mask on SEx FLAGS */
   unsigned int	phot_imaflagsmask;		/* Photom. mask on image flags*/
 
 /* Astrometric solution */
@@ -194,7 +192,7 @@ typedef struct
   accuracyenum	astraccuracy_type;		/* Astrom. uncer. input type */
   char		astraccuracy_key[72];	/* Fits keyword for astrom. uncer. */
   double	astraccuracy;			/* Astrom. uncertainty floor */
-  unsigned short astr_sexflagsmask;		/* Astrom. mask on SEx FLAGS */
+  unsigned int	astr_sexflagsmask;		/* Astrom. mask on SEx FLAGS */
   unsigned int	astr_imaflagsmask;		/* Astrom. mask on image flags*/
 /* Parallaxes */
   int		parallax_flag;			/* Compute parallaxes? */

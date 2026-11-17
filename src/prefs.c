@@ -622,8 +622,6 @@ void	useprefs(void)
       strcpy(prefs.ref_server[i], "vizier.u-strasbg.fr");
     }
 
-  for (i=prefs.nref_ntries; i<prefs.nref_server; i++)
-    prefs.ref_ntries[i] = prefs.ref_ntries[prefs.nref_ntries-1];
   for (i=prefs.nref_timeout; i<prefs.nref_server; i++)
     prefs.ref_timeout[i] = prefs.ref_timeout[prefs.nref_timeout-1];
 
