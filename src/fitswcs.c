@@ -127,11 +127,11 @@ wcsstruct	*create_wcs(char **ctype, double *crval, double *crpix,
     wcs->naxisn[l] = naxisn? naxisn[l] : 360.0;
 /*-- The default WCS projection system is an all-sky Aitoff projection */
     if (ctype)
-      strncpy(wcs->ctype[l], ctype[l], 8);
+      snprintf(wcs->ctype[l], sizeof(wcs->ctype[l]), "%.8s", ctype[l]);
     else if (l==0)
-      strncpy(wcs->ctype[l], "RA---AIT", 8);
+      snprintf(wcs->ctype[l], sizeof(wcs->ctype[l]), "RA---AIT");
     else if (l==1)
-      strncpy(wcs->ctype[l], "DEC--AIT", 8);
+      snprintf(wcs->ctype[l], sizeof(wcs->ctype[l]), "DEC--AIT");
     wcs->crval[l] = crval? crval[l]: 0.0;
     wcs->crpix[l] = crpix? crpix[l]: 0.0;
     wcs->cdelt[l] = 1.0;
@@ -382,10 +382,10 @@ wcsstruct	*read_wcs(tabstruct *tab)
     wcs->naxisn[l] = tab->naxisn[l];
     sprintf(str, "CTYPE%-3d", l+1);
     FITSREADS(buf, str, str, "", MAXCHARS);
-    strncpy(wcs->ctype[l], str, 8);
+    snprintf(wcs->ctype[l], sizeof(wcs->ctype[l]), "%.8s", str);
     sprintf(str, "CUNIT%-3d", l+1);
     FITSREADS(buf, str, str, "deg", MAXCHARS);
-    strncpy(wcs->cunit[l], str, sizeof(wcs->cunit[l])-1);
+    snprintf(wcs->cunit[l], sizeof(wcs->cunit[l]), "%.31s", str);
     sprintf(str, "CRVAL%-3d", l+1);
     FITSREADF(buf, str, wcs->crval[l], 0.0);
     sprintf(str, "CRPIX%-3d", l+1);

@@ -708,10 +708,11 @@ void    get_magick(void) {
 
   prefs.cplot_antialiasexec = NULL;
   for (i=0; *exec_names[i]; i++) {
-    sprintf(teststr, "%s 2>/dev/null", exec_names[i]);
+    snprintf(teststr, sizeof(teststr), "%.60s 2>/dev/null", exec_names[i]);
     if (!(testfile=popen(teststr, "r")))
       continue;
-    fgets(teststr, 80, testfile);
+    if (!fgets(teststr, sizeof(teststr), testfile))
+      *teststr = '\0';
     pclose(testfile);
     if (!strstr(teststr, "ImageMagick"))
       continue;

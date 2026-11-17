@@ -576,15 +576,20 @@ int	fitswrite(char *fitsbuf, char *keyword, void *ptr, h_type htype,
     case H_STRINGS:	/* Handle the famous quote */
 			cstr1 = (char *)ptr;
 			cstr2 = str2;
-			for (i=0; i<80; i++)
-			  if (!(c=*(cstr2++) = *(cstr1++)))
-			    break;
-			  else if (c == '\'')
+			/* At most 78 characters, to leave room for the quotes */
+			for (i=0; i<78 && (c=*cstr1); i++)
+			  {
+			  if (c == '\'')
 			    {
+			    if (i>=77)
+			      break;
 			    *(cstr2++) = '\'';
 			    i++;
 			    }
-		        sprintf(str, "'%s'", str2);
+			  *(cstr2++) = *(cstr1++);
+			  }
+			*cstr2 = '\0';
+		        snprintf(str, sizeof(str), "'%.78s'", str2);
                         for (i+=2;i<20; i++)
                           str[i]=' ';
                         str[i] = '\0';
@@ -620,8 +625,7 @@ int	fitswrite(char *fitsbuf, char *keyword, void *ptr, h_type htype,
     {
     strncpy(str2, cstr, i);
     str2[i] = 0;
-    strcat(str, " ");
-    strncat(str, str2, l);
+    snprintf(str+strlen(str), sizeof(str)-strlen(str), " %.*s", l, str2);
     }
 
   memset(fitsbuf+9, ' ', 71);

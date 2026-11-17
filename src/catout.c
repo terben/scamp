@@ -151,7 +151,7 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
         {
         if (i>4)
           fprintf(ascfile, "\t%s", key->name);
-        sprintf(str, "\t%s", key->printf);
+        snprintf(str, sizeof(key->printf), "\t%.78s", key->printf);
         strcpy(key->printf, str);
         }
       fprintf(ascfile, "\n------------------\n");
@@ -426,7 +426,7 @@ void	writefullcat_fgroup(char *filename, fgroupstruct *fgroup)
         {
         if (i>4)
           fprintf(ascfile, "\t%s", key->name);
-        sprintf(str, "\t%s", key->printf);
+        snprintf(str, sizeof(key->printf), "\t%.78s", key->printf);
         strcpy(key->printf, str);
         }
       fprintf(ascfile, "\n------------------\n");

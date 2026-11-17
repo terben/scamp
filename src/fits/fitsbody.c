@@ -120,9 +120,11 @@ PIXTYPE	*alloc_body(tabstruct *tab, void (*func)(PIXTYPE *ptr, int npix))
 /*-- Convert and copy the data to a swap file, and mmap() it */
     if (!(buffer = malloc(DATA_BUFSIZE)))
       return NULL;
-    sprintf(tab->swapname, "%s/vm%05ld_%05x.tmp",
+    if (snprintf(tab->swapname, sizeof(tab->swapname), "%s/vm%05ld_%05x.tmp",
 		body_swapdirname, (long)getpid(),
-		(unsigned int)++body_vmnumber) ;
+		(unsigned int)++body_vmnumber) >= (int)sizeof(tab->swapname))
+      error(EXIT_FAILURE, "*Error*: swap directory name too long: ",
+		body_swapdirname);
     if (!(file=fopen(tab->swapname, "wb+")))
       error(EXIT_FAILURE, "*Error*: cannot create swap-file ", tab->swapname);
     add_cleanupfilename(tab->swapname);
@@ -220,9 +222,11 @@ FLAGTYPE	*alloc_ibody(tabstruct *tab,
 /*-- Convert and copy the data to a swap file, and mmap() it */
     if (!(buffer = malloc(DATA_BUFSIZE)))
       return NULL;
-    sprintf(tab->swapname, "%s/vm%05ld_%05x.tmp",
+    if (snprintf(tab->swapname, sizeof(tab->swapname), "%s/vm%05ld_%05x.tmp",
 		body_swapdirname, (long)getpid(),
-		(unsigned int)++body_vmnumber) ;
+		(unsigned int)++body_vmnumber) >= (int)sizeof(tab->swapname))
+      error(EXIT_FAILURE, "*Error*: swap directory name too long: ",
+		body_swapdirname);
     if (!(file=fopen(tab->swapname, "wb+")))
       error(EXIT_FAILURE, "*Error*: cannot create swap-file ", tab->swapname);
     add_cleanupfilename(tab->swapname);

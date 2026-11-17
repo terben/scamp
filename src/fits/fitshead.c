@@ -498,7 +498,7 @@ int	prim_head(tabstruct *tab)
     return RETURN_ERROR;
   if (!strncmp(tab->headbuf, "XTENSION",8))
       {
-      strncpy(tab->headbuf, "SIMPLE  =                    T "
+      memcpy(tab->headbuf, "SIMPLE  =                    T "
 	"/ This is a FITS file                            ", 80);
       removekeywordfrom_head(tab, "PCOUNT");      
       removekeywordfrom_head(tab, "GCOUNT");      
@@ -529,7 +529,7 @@ int	ext_head(tabstruct *tab)
     return RETURN_ERROR;
   if (!strncmp(tab->headbuf, "SIMPLE  ",8))
       {
-      strncpy(tab->headbuf, "XTENSION= 'IMAGE   '           "
+      memcpy(tab->headbuf, "XTENSION= 'IMAGE   '           "
 		"/ Image extension                                ", 80);
 /* fitsverify 4.13 (CFITSIO V3.002) return an error
    if EXTEND are in an extension header (20/06/2007)*/

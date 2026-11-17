@@ -131,7 +131,7 @@ void	astrsolve_fgroups(fgroupstruct **fgroups, int nfgroup) {
    setstruct	*set,*set2;
    samplestruct	*samp;
    polystruct	*poly, *poly2;
-   char		str[64],
+   char		str[MAXCHAR],
 		**contextname;
    double	cmin[MAXCONTEXT],cmax[MAXCONTEXT],
 		cscale[MAXCONTEXT], czero[MAXCONTEXT],
@@ -378,7 +378,7 @@ void	astrsolve_fgroups(fgroupstruct **fgroups, int nfgroup) {
         fields = fgroups[g]->field;
         for (f=0; f<nfield; f++)
         {
-            sprintf(str, "Filling the global astrometry matrix: "
+            snprintf(str, sizeof(str), "Filling the global astrometry matrix: "
                     "group %d/%d, field %d/%d",
                     g+1, nfgroup, f+1, nfield);
             NFPRINTF(OUTPUT, str);
@@ -1060,7 +1060,7 @@ void    *pthread_fillastromatrix_thread(void *arg)
             }
             if (!sindex)
             {
-                sprintf(str, "Filling the global astrometry matrix: "
+                snprintf(str, sizeof(str), "Filling the global astrometry matrix: "
                         "group %d/%d, field %d/%d",
                         gindex+1, pthread_ngroup,
                         findex+1, pthread_fgroups[gindex]->nfield);

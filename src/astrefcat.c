@@ -300,7 +300,8 @@ fieldstruct	*get_astreffield(astrefenum refcat, double *wcspos,
   else if ((band=findkeys(prefs.astref_bandname,
 		astrefcat->bandnames, FIND_STRICT))==RETURN_ERROR)
     {
-    sprintf(str, "%s: no such band in astrometric reference catalog %s, use ",
+    snprintf(str, sizeof(str),
+	"%.64s: no such band in astrometric reference catalog %s, use ",
 	prefs.astref_bandname, catname);
     for (b=0; b<nband; b++)
       {

@@ -211,10 +211,8 @@ int	write_xml_meta(FILE *file, char *msgerror)
     {
     thetime2 = time(NULL);
     tm = localtime(&thetime2);
-    sprintf(prefs.sdate_end,"%04d-%02d-%02d",
-        tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
-    sprintf(prefs.stime_end,"%02d:%02d:%02d",
-        tm->tm_hour, tm->tm_min, tm->tm_sec);
+    strftime(prefs.sdate_end, sizeof(prefs.sdate_end), "%Y-%m-%d", tm);
+    strftime(prefs.stime_end, sizeof(prefs.stime_end), "%H:%M:%S", tm);
     prefs.time_diff = difftime(thetime2, thetime);
     }
 

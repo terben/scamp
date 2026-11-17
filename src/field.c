@@ -152,7 +152,7 @@ fieldstruct *load_field(char *filename, int fieldindex, char *hfilename)
     /* Create a dummy FITS header to store all keyword values */
     QMALLOC(field->astrombuf, char, FBSIZE);
     memset(field->astrombuf, ' ', FBSIZE);
-    strncpy(field->astrombuf, "END     ", 8);
+    memcpy(field->astrombuf, "END     ", 8);
     for (s=0; s<prefs.nastrinstru_key; s++) {
         fitsadd(field->astrombuf, prefs.astrinstru_key[s], "");
         if ((line=fitsfind(cat->tab->headbuf,prefs.astrinstru_key[s]))
@@ -169,7 +169,7 @@ fieldstruct *load_field(char *filename, int fieldindex, char *hfilename)
     /* Create dummy a FITS header to store all keyword values */
     QMALLOC(field->photombuf, char, FBSIZE);
     memset(field->photombuf, ' ', FBSIZE);
-    strncpy(field->photombuf, "END     ", 8);
+    memcpy(field->photombuf, "END     ", 8);
     for (s=0; s<prefs.nphotinstru_key; s++) {
         fitsadd(field->photombuf, prefs.photinstru_key[s], "");
         if ((line=fitsfind(cat->tab->headbuf,prefs.photinstru_key[s]))
