@@ -20,6 +20,7 @@
  *
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -124,7 +125,7 @@ PixelStore_add(
 
         if (store->pixelids_size == store->npixels) {
             QREALLOC(store->pixelids,
-                 long, store->pixelids_size * 2);
+                 int64_t, store->pixelids_size * 2);
             store->pixelids_size *= 2;
         }
         store->pixelids[store->npixels] = pixnum;
@@ -311,7 +312,7 @@ static void pixelAvlPrint(pixel_avl *pix) {
     pixelAvlPrint(pix->pAfter);
     pixelAvlPrint(pix->pBefore);
 
-    fprintf(stderr, "pixel num: %li\n", pix->pixel.id);
+    fprintf(stderr, "pixel num: %" PRId64 "\n", pix->pixel.id);
 }
 
 /* free */
