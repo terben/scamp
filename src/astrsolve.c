@@ -1693,6 +1693,8 @@ void	reproj_fgroup(fgroupstruct *fgroup, fieldstruct *reffield, int propflag)
     if (reffield)
     {
         set = reffield->set[0];
+        lng = set->lng;
+        lat = set->lat;
         samp = set->sample;
         for (nsamp=set->nsample; nsamp--; samp++)
         {

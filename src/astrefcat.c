@@ -259,7 +259,7 @@ fieldstruct	*get_astreffield(astrefenum refcat, double *wcspos,
    fieldstruct	*field,*tfield;
    setstruct	*set;
    samplestruct	*sample;
-   URL_FILE	*file;
+   URL_FILE	*file = NULL;
    char		cols[MAX_COLUMN][COLUMN_SIZE],
 		url[MAXCHAR], maglimcmd[128],
 		str[MAXCHAR],

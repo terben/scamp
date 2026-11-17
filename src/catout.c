@@ -82,7 +82,7 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
    msamplestruct	*msamp;
    mergedsamplestruct	mergedsample;
    samplestruct		*samp,*samp2;
-   FILE			*ascfile;
+   FILE			*ascfile = NULL;
    double		mag[MAXPHOTINSTRU], magerr[MAXPHOTINSTRU],
 			magdisp[MAXPHOTINSTRU], magchi2[MAXPHOTINSTRU],
 			magref[MAXPHOTINSTRU], err2;
@@ -366,7 +366,7 @@ void	writefullcat_fgroup(char *filename, fgroupstruct *fgroup)
    fullsamplestruct	fsample;
    msamplestruct	*msamp;
    samplestruct		*samp,*samp2;
-   FILE			*ascfile;
+   FILE			*ascfile = NULL;
    char			str[80],
 			*buf, *rfilename;
    int			d,i,k,m,n, naxis;

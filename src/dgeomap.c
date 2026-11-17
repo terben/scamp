@@ -265,7 +265,8 @@ int	dgeomap_instru(fieldstruct **fields, int nfield, int instru,
         for (j=0; j<npixiny;) {
 //-------- First interpolate current line and the next
           if (!j) {
-            pix = line0 = line[j%2];
+            pix = line0 = line1 = line[j%2];	// line1 for a single line
+            val0 = val1 = *pixin;	// only kept if there is a single column
             for (i=npixinx; i--;) {
               if (i) {
                 val0 = *pixin;
@@ -281,6 +282,7 @@ int	dgeomap_instru(fieldstruct **fields, int nfield, int instru,
           }
           if (++j < npixiny) {
             pix = line1 = line[j%2];
+            val0 = val1 = *pixin;	// only kept if there is a single column
             for (i=npixinx; i--;) {
               if (i) {
                 val0 = *pixin;
@@ -340,7 +342,7 @@ int	dgeomap_instru(fieldstruct **fields, int nfield, int instru,
     free(dgeoout);
   }
 
-  tab->bodybuf = NULL;// prevent free_cheat() from freeing the dgeomap ptr
+  cat->tab->bodybuf = NULL;// prevent free_cheat() from freeing the dgeomap ptr
   free_cat(&cat,1);
 
   return RETURN_OK;

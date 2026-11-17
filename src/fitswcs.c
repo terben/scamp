@@ -62,7 +62,7 @@ VERSION	31/08/2002
 wcsstruct	*copy_wcs(wcsstruct *wcsin)
 
   {
-   wcsstruct	*wcs;
+   wcsstruct	*wcs = NULL;
 
 /* Copy the basic stuff */
   QMEMCPY(wcsin, wcs, wcsstruct, 1);
@@ -658,7 +658,7 @@ void	write_wcs(tabstruct *tab, wcsstruct *wcs) {
 	38,37,36,35,34,33,32,31,39
    };
 
-   double	*cd2, *cd3, *projp, *projp2,
+   double	*cd2, *cd3 = NULL, *projp, *projp2 = NULL,
    		mjd;
    char		str[MAXCHARS];
    int		j, l, p, naxis, lng, lat, cdflag;

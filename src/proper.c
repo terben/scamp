@@ -277,12 +277,12 @@ void	astrprop_fgroup(fgroupstruct *fgroup)
 /* Set up a WCS structure to handle ecliptic coordinates */
   if (paralflag)
     {
-    for (d=0; d<naxis; d++)
+    for (d=0; d<NAXIS; d++)
       QCALLOC(wcsectype[d], char, 16); 
     strcat(wcsectype[lng], "ELON-AIT");
     strcat(wcsectype[lat], "ELAT-AIT");
     wcsec = create_wcs(wcsectype, NULL, NULL, NULL, NULL, 2);
-    for (d=0; d<naxis; d++)
+    for (d=0; d<NAXIS; d++)
       free(wcsectype[d]); 
     }
   else
