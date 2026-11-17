@@ -457,7 +457,7 @@ Stand: 17.11.2026. Ziel: Der Build mit `-Wall` soll ohne Warnungen durchlaufen, 
 
 ### Offen bzw. zu entscheiden
 
-- **Eigenbewegungskorrektur in `astrsolve.c:1661/1708` (behoben, aber nicht aktiv):** `properr2` wurde aus der Eigenbewegung selbst berechnet (`wcsprop²·wcschi2`) statt aus ihrem Fehler. Der Dämpfungsfaktor `prop²/(prop²+properr2)` wurde so zu `1/(1+χ²)`, also unabhängig von der Messgenauigkeit (bei χ² ≈ 1 wurde jede Eigenbewegung halbiert). Jetzt wird `wcsproperr²·wcschi2` verwendet, wie in `astrefcat.c:925`. Der Code läuft derzeit nie: Das Schlüsselwort `CORRECT_PROPERMOTIONS` ist seit `c394c7b` (2013) auskommentiert, auch upstream. Vor einem Einschalten muss die Korrektur mit Daten mit echten Eigenbewegungen über mehrere Epochen getestet werden. Weitere Probleme dieser Option: siehe Abschnitt 11.
+- **Eigenbewegungskorrektur in `astrsolve.c:1661/1708` (behoben, aber nicht aktiv):** `properr2` wurde aus der Eigenbewegung selbst berechnet (`wcsprop²·wcschi2`) statt aus ihrem Fehler. Der Dämpfungsfaktor `prop²/(prop²+properr2)` wurde so zu `1/(1+χ²)`, also unabhängig von der Messgenauigkeit (bei χ² ≈ 1 wurde jede Eigenbewegung halbiert). Jetzt wird `wcsproperr²·wcschi2` verwendet, wie in `astrefcat.c:925`. Das Schlüsselwort `CORRECT_PROPERMOTIONS` war seit `c394c7b` (2013) auskommentiert (upstream weiterhin); es ist inzwischen wieder verfügbar, Standard `N`. Weitere Probleme dieser Option und ihre Behebung: siehe Abschnitt 11.
 - **`photsolve.c`:** Die Koeffizienten-Arrays `*2` (Offsets pro Set, `offlag`) werden gefüllt, aber nie in die Matrix übernommen. Offenbar ist das Feature unvollständig. Es wurden nur die toten Zuweisungen entfernt.
 
 ## 11. Eigenbewegungen: `COMPUTE_PROPERMOTIONS` und `CORRECT_PROPERMOTIONS`
@@ -473,9 +473,9 @@ Stand: 17.11.2026. Untersucht mit synthetischen Mehrepochen-Daten (`tests/gen_sy
 
 Neuer Test `tests/test_propmotion01.py` in `make check`: Er prüft bei `INCLUDE_ASTREFCATALOG Y` und `N`, dass alle Quellen eine Eigenbewegung haben, dass die robuste Streuung unter 6 mas/yr liegt und dass die Steigung für schnelle Sterne 1 ± 0,05 beträgt. Die gemeinsamen Teile der Generatoren stehen jetzt in `tests/synth_lib.py`; die Daten von `gen_synth.py` sind unverändert (byte-identisch geprüft).
 
-### `CORRECT_PROPERMOTIONS` (weiterhin abgeschaltet)
+### `CORRECT_PROPERMOTIONS`
 
-Die Option ist seit 2013 auskommentiert (auch upstream) und unvollständig implementiert:
+Die Option war seit 2013 auskommentiert (upstream weiterhin) und unvollständig implementiert. Inzwischen ist sie wieder verfügbar (Standard `N`); siehe den Unterabschnitt „Dritter Lösungsschritt“ unten. Stand der ursprünglichen Untersuchung:
 
 | Lauf (Testdaten oben) | WCS-Fehler | Eigenbewegungen, helle Sterne (robuste Streuung RA/Dec) |
 |---|---|---|
@@ -486,11 +486,11 @@ Die Option ist seit 2013 auskommentiert (auch upstream) und unvollständig imple
 
 - **Formel** (Abschnitt 10): Mit der alten Formel verschlechterte die Korrektur die Lösung. Das ist ein plausibler Grund für das Abschalten.
 - **Fehlende Reprojektion (behoben):** Nach dem dritten Lösungsschritt fehlte `reproj_fgroup()`. Die abschließende Eigenbewegungsberechnung lief dann auf korrigierten Positionen mit veralteter WCS, und die ausgegebenen Eigenbewegungen waren unbrauchbar. `makeit.c` reprojiziert jetzt vorher (nur wenn die Option aktiv ist).
-- **Statistiken (offen):** Statistik und Clipping werden nach dem dritten Lösungsschritt nicht neu berechnet. XML-Statistiken und Check-Plots beschreiben weiterhin die Lösung ohne Korrektur.
+- **Statistiken und Clipping (behoben):** Statistik und Clipping wurden nach dem dritten Lösungsschritt nicht neu berechnet, und dieser lief ohne Clipping. Siehe „Dritter Lösungsschritt“ unten.
 - **Grundsätzliche Grenze (offen):** Der Löser hat keine Eigenbewegungen als freie Parameter. Der lineare Anteil des Eigenbewegungsfeldes aller Sterne (gewichtet wie im Löser) wird daher als zeitlich lineare Drift in die linearen WCS-Terme der Belichtungen übernommen. Gemessen sind etwa 0,2 mas/arcmin pro Jahr. Diese Drift erzeugt einen feldweiten Trend in den gemessenen Eigenbewegungen von etwa 3 mas/yr (nach Abzug eines linearen Feldtrends bleiben 0,2 mas/yr). Die Korrektur nutzt die im driftenden System gemessenen Eigenbewegungen und kann die Drift deshalb nicht entfernen; sie verbessert nur den nichtlinearen Anteil (3,5 → 2,0 mas). Auch ein Referenzkatalog auf der mittleren Epoche oder `ASTREF_WEIGHT 100` beseitigen die Drift nicht. Abhilfe brächte nur eine Propagation der Referenzsterne mit ihren Katalog-Eigenbewegungen auf die Epoche jeder einzelnen Belichtung.
 - **`ASTREFEPOCH_TYPE`** wirkt nur für VizieR-Kataloge, nicht für Referenzkataloge aus einer Datei (`ASTREF_CATALOG FILE`).
 
-**Empfehlung:** `CORRECT_PROPERMOTIONS` abgeschaltet lassen, bis Statistiken nach dem dritten Lösungsschritt neu berechnet werden und die Drift über Referenz-Eigenbewegungen pro Belichtung verankert ist.
+Die Drift lässt sich über die Eigenbewegungen des Referenzkatalogs verankern (`ASTREFPROP_CORRECT`, nächster Unterabschnitt).
 
 ### Neue Option `ASTREFPROP_CORRECT` (Standard `N`)
 
@@ -513,6 +513,38 @@ Ergebnisse mit den Testdaten oben (`INCLUDE_ASTREFCATALOG Y`):
 
 Die zeitliche Drift der Rotation verschwindet mit dem Referenzkatalog auf der mittleren Epoche praktisch vollständig. Am besten wirkt die Option daher zusammen mit `ASTREFEPOCH_TYPE FIELDS_AVERAGE` (nur VizieR-Kataloge). Bei Katalogen aus einer Datei sollten die Positionen auf eine Epoche nahe der Beobachtungen gebracht werden.
 
-Verbleibende Grenze: Sterne ohne Referenz-Eigenbewegung tragen weiter zur Drift bei. In diesen pessimistischen Testdaten, in denen auch schwache Sterne zu 20 % schnell sind, sind das etwa 0,2 mas/yr/arcmin. Mit den gemessenen Eigenbewegungen dieser Sterne zu korrigieren (`CORRECT_PROPERMOTIONS` zusätzlich) verschlechtert das Ergebnis (WCS 15 mas) und wurde verworfen.
+Verbleibende Grenze: Sterne ohne Referenz-Eigenbewegung tragen weiter zur Drift bei. In diesen pessimistischen Testdaten, in denen auch schwache Sterne zu 20 % schnell sind, sind das etwa 0,2 mas/yr/arcmin. Diese Sterne zusätzlich mit ihren gemessenen Eigenbewegungen zu korrigieren (`CORRECT_PROPERMOTIONS`) schien zunächst das Ergebnis zu verschlechtern. Die Ursache war das fehlende Clipping im dritten Lösungsschritt. Nach dessen Behebung ist die Kombination die beste Variante (nächster Unterabschnitt).
 
 `tests/test_propmotion01.py` prüft die Option in einem dritten Lauf: robuste Streuung der Eigenbewegungen der Referenzsterne unter 2 mas/yr; gemessen 1,15/1,12, ohne die Korrektur 2,52 in RA.
+
+### Dritter Lösungsschritt (`CORRECT_PROPERMOTIONS`)
+
+Mit `CORRECT_PROPERMOTIONS Y` folgt auf die beiden üblichen Lösungsschritte ein dritter, auf eigenbewegungskorrigierten Positionen. Dabei gab es zwei Probleme:
+
+- **Kein Clipping.** Das Clipping entfernt Ausreißer nur aus den Ketten verknüpfter Detektionen; es markiert sie nicht dauerhaft. Die neue Kreuzidentifikation vor dem dritten Schritt hat alle zuvor entfernten Ausreißer wieder eingefügt.
+- **Veraltete Statistiken.** Danach wurden weder Statistik noch Clipping neu berechnet. Konsolenausgabe und XML-Statistiken beschrieben die Lösung vor der Korrektur. Im Test waren sie in allen Varianten identisch, obwohl die WCS-Genauigkeit zwischen 3,5 und 7,2 mas lag.
+
+Jetzt wird vor dem dritten Schritt erneut geclippt. Danach folgen wie nach dem zweiten Schritt Kreuzidentifikation, Statistik, Clipping und die Ausgabe der Statistiktabellen („(proper motion corrected)“). Die Ausgabe ist dafür in die Funktion `astrstats_report()` in `makeit.c` ausgelagert. `CORRECT_PROPERMOTIONS` ist wieder als Schlüsselwort verfügbar (Standard `N`, nur in `scamp -dd`). Es sollte zusammen mit `ASTREFPROP_CORRECT Y` verwendet werden; ohne dieses ist die Korrektur zirkulär und bringt wenig.
+
+Ergebnisse (Testdaten oben, Referenzkatalog auf der mittleren Epoche, `INCLUDE_ASTREFCATALOG Y`):
+
+| `CORRECT_PROPERMOTIONS` | `ASTREFPROP_CORRECT` | WCS-Fehler | Eigenbewegung Referenzsterne RA/Dec |
+|---|---|---|---|
+| N | N | 7,9 mas | 2,52 / 1,05 mas/yr |
+| Y (ohne Clipping, alt) | N | 6,9 mas | 2,47 / 1,04 mas/yr |
+| N | Y | 5,0 mas | 0,63 / 0,66 mas/yr |
+| Y (ohne Clipping, alt) | Y | 7,2 mas | 1,06 / 0,73 mas/yr |
+| **Y (mit Clipping)** | **Y** | **3,5 mas** | **0,47 / 0,38 mas/yr** |
+
+Mit dem Referenzkatalog auf Epoche 2016 sinkt der WCS-Fehler mit beiden Optionen von 7,6 (nur `ASTREFPROP_CORRECT`) auf 4,9 mas. Auch der feldweite Trend der schwachen Sterne ohne Referenz verschwindet weitgehend.
+
+`tests/test_propmotion01.py` prüft beide Optionen über die robuste Streuung der Eigenbewegungen der Referenzsterne (quadratisches Mittel beider Achsen):
+
+| Lauf | Wert | Grenze |
+|---|---|---|
+| ohne Korrektur | 1,87 mas/yr | – |
+| `ASTREFPROP_CORRECT Y` | 1,13 mas/yr | < 1,5 |
+| beide Optionen | 0,70 mas/yr | < 0,9 |
+| beide, ohne Clipping vor dem dritten Schritt (Gegenprobe) | 1,49 mas/yr | schlägt fehl |
+
+Alle Ergebnisse stammen aus synthetischen Daten. Eine Prüfung mit echten Mehrepochen-Daten (z. B. Gaia über VizieR) steht aus.
