@@ -73,6 +73,16 @@
 #include "threads.h"
 #endif
 
+/* The loop pragmas below (ivdep, nounroll) are meant for the Intel compilers;
+   keep other compilers from warning about them with -Wall */
+#if !defined(__INTEL_COMPILER) && !defined(__INTEL_LLVM_COMPILER)
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#endif
+#endif
+
 /*------------------- global variables for multithreading -------------------*/
 #ifdef USE_THREADS
 #define	NMAT_MUTEX	32

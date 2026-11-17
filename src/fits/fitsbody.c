@@ -43,6 +43,16 @@
 #include	"fitscat_defs.h"
 #include	"fitscat.h"
 
+/* The loop pragmas below (ivdep, nounroll) are meant for the Intel compilers;
+   keep other compilers from warning about them with -Wall */
+#if !defined(__INTEL_COMPILER) && !defined(__INTEL_LLVM_COMPILER)
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#endif
+#endif
+
 size_t	body_maxram = BODY_DEFRAM,
 	body_maxvram = BODY_DEFVRAM,
 	body_ramleft, body_vramleft, body_ramflag;
