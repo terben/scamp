@@ -548,3 +548,34 @@ Mit dem Referenzkatalog auf Epoche 2016 sinkt der WCS-Fehler mit beiden Optionen
 | beide, ohne Clipping vor dem dritten Schritt (Gegenprobe) | 1,49 mas/yr | schlägt fehl |
 
 Alle Ergebnisse stammen aus synthetischen Daten. Eine Prüfung mit echten Mehrepochen-Daten (z. B. Gaia über VizieR) steht aus.
+
+## 12. Prüfung der Astrometrie (Branch `astrom-tests`)
+
+### Phase 0: Regressionsvergleich mit Upstream
+
+Stand: 17.11.2026. Frage: Verändern unsere Änderungen (Abschnitte 1–11) die astrometrische Standardlösung?
+
+**Vorgehen:**
+- Verglichen wurde Upstream `72b7e76` (Basis aller Änderungen) mit `master` (`368b6f5`).
+- Upstream ließ sich mit gcc + MKL nicht konfigurieren (Abschnitt 1). Deshalb wurden im Upstream-Worktree nur `configure.ac`, `m4/` und `Makefile.am` von `master` übernommen; `src/` ist unverändert Upstream. Beide Binaries nutzen so dieselben Bibliotheken (gcc 11, MKL).
+- Alle Läufe mit `NTHREADS 1` und `MKL_NUM_THREADS=1`, damit sie deterministisch sind.
+- Das neue Skript `tests/compare_heads.py` wertet zwei `.head`-Lösungen auf einem 21×41-Pixelgitter jedes Chips aus und meldet die größte Positionsdifferenz. Gegenprobe: Eine Verschiebung von CRVAL1 um 1e-4° wird mit 284 mas erkannt (erwartet 360 mas · cos δ = 284 mas).
+
+| Szenario | Daten | Optionen | `.head` | Kataloge/XML |
+|---|---|---|---|---|
+| M1 | Megacam, 8 Belichtungen × 36 Chips, Gaia DR1 | `test_integration01.conf` (`SAME_CRVAL`, `INSTRUMENT`, Grad 4) | identisch | XML identisch¹ |
+| M2 | wie M1 | `MOSAIC_TYPE LOOSE`, `STABILITY_TYPE EXPOSURE` | identisch | XML identisch¹ |
+| M3 | wie M1 | `MOSAIC_TYPE FIX_FOCALPLANE` | identisch | XML identisch¹ |
+| M4 | wie M1 | ein Instrument, Grad 3, Merged- und Full-Katalog | identisch | Kataloge byte-identisch |
+| S1 | `gen_synth.py` (Einzelchip) | wie `test_synthetic01.py` | identisch | XML identisch¹ |
+| PY | `gen_synth_pm.py` | `COMPUTE_PROPERMOTIONS Y`, `INCLUDE_ASTREFCATALOG Y` | identisch | Merged-Katalog identisch |
+| PN | `gen_synth_pm.py` | `COMPUTE_PROPERMOTIONS Y`, `INCLUDE_ASTREFCATALOG N` | identisch | Eigenbewegungen verschieden² |
+
+¹ Abgesehen von Pfaden, Laufzeit und `Flags_Mask` (Upstream: falsch 16711920, jetzt 240, Abschnitt 9).
+² Erwartet, das ist der Fix in `proper.c:504` (Abschnitt 11). Anteil der Quellen ohne Eigenbewegung: Upstream 88,7 %, jetzt 5,6 % (Quellen mit zu wenigen Detektionen).
+
+**Ergebnis:** Ohne die neuen Optionen sind die astrometrischen Lösungen byte-identisch mit Upstream, auch für die Multichip-Kamera in drei Mosaikmodi. Die einzigen Unterschiede sind die beabsichtigten Korrekturen.
+
+Nicht abgedeckt: Läufe mit mehreren Threads (dort ist mit Rundungsrauschen zu rechnen, Abschnitt 10) und die VizieR-Kataloge.
+
+Zum Vergleich mit der Wahrheit (S1, Einzelchip): Positions-RMS je Belichtung 2,9–4,1 mas, Maximum 10 mas. Das liegt knapp an der Testgrenze von 10 mas (RMS) und zeigt, dass ein rauschfreier Test nötig ist, um Algorithmusfehler vom Rauschen zu trennen (Phase 1).
