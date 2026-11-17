@@ -727,7 +727,7 @@ fieldstruct	*get_astreffield(astrefenum refcat, double *wcspos,
               mag[b] = magerr[b] = 99.0;
             else {
               mag[b] = atof(smag);
-              magerr[b] = smagerr[2] <= ' '? atof(smagerr): DEFAULT_MAGERR;
+              magerr[b] = smagerr[2] <= ' '? DEFAULT_MAGERR : atof(smagerr);
             }
           }
           break;
@@ -751,7 +751,7 @@ fieldstruct	*get_astreffield(astrefenum refcat, double *wcspos,
               mag[b] = magerr[b] = 99.0;
             else {
               mag[b] = atof(smag);
-              magerr[b] = smagerr[2] <= ' '? atof(smagerr): DEFAULT_MAGERR;
+              magerr[b] = smagerr[2] <= ' '? DEFAULT_MAGERR : atof(smagerr);
             }
           }
           break;
@@ -909,7 +909,7 @@ fieldstruct	*get_astreffield(astrefenum refcat, double *wcspos,
               mag[b] = magerr[b] = 99.0;
             else {
               mag[b] = atof(smag);
-              magerr[b] = smagerr[2] <= ' '? atof(smagerr): DEFAULT_MAGERR;
+              magerr[b] = smagerr[2] <= ' '? DEFAULT_MAGERR : atof(smagerr);
             }
           }
           break;
