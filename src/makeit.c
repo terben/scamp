@@ -498,6 +498,11 @@ void makeit(void)
             /*-- Re-do Cross-ID to recover possibly fast moving objects */
             NFPRINTF(OUTPUT, "Pairing detections...");
 
+            if (prefs.propmotioncorr_flag && prefs.solvastrom_flag)
+                /*---- Projected positions are still corrected for proper */
+                /*---- motions and refer to the previous solution */
+                for (g=0; g<ngroup; g++)
+                    reproj_fgroup(fgroups[g], reffields[g], 0);
             for (g=0; g<ngroup; g++)
                 CrossId_run(fgroups[g], reffields[g],
 			prefs.crossid_radius * ARCSEC / DEG);
