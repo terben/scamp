@@ -631,3 +631,41 @@ Zum Vergleich mit der Wahrheit (S1, Einzelchip): Positions-RMS je Belichtung 2,9
 | 6 5 4 3 2 1 | 714 / 5298 mas | 1389 / 7389 mas |
 
 Die Lösungen für die Reihenfolgen „1…6“ und „6…1“ unterscheiden sich um bis zu 5″, und `FLXSCALE` um bis zu 0,059 mag. Die Reihenfolge entscheidet also bei gleicher Epoche über die Kreuzidentifikation und damit über das Ergebnis.
+
+### Phase 1b: Multichip mit `.ahead`-Dateien (Normalbetrieb)
+
+**Vorgehen:**
+- `tests/make_ahead.py` schreibt für jede Belichtung eine `.ahead`-Datei (TAN + PV, Grad 3, pro Chip angepasst; Anpassungsrest < 0,0001 mas).
+- Sie enthält ein Instrumentmodell, behält aber Zeigerichtung und Positionswinkel des Headers samt deren Fehlern (bis 6,5″ bzw. 0,02°), wie im Normalbetrieb. Gegenüber der Wahrheit liegt sie bis 10″ daneben.
+- Varianten: **perfekt** (exaktes Instrumentmodell) und **ungefähr** (Chiplage um 0,5 Pixel, Verzeichnung um 1 % falsch).
+- Alle Läufe mit einem Thread, Standardkonfiguration, sofern nicht anders angegeben.
+
+**Standardkonfiguration** (`MOSAIC_TYPE UNCHANGED`, `STABILITY_TYPE INSTRUMENT`, `CROSSID_RADIUS 2`):
+
+| Daten | `.ahead` | RMS / Max (je drei Reihenfolgen) |
+|---|---|---|
+| rauschfrei | perfekt | 0,13 / 5,2 mas, unabhängig von der Reihenfolge |
+| rauschfrei | ungefähr | 0,18 / 4,6–4,7 mas |
+| verrauscht, verschiedene Epochen | perfekt/ungefähr | 1,59–1,61 / 6,1–6,4 mas, unabhängig von der Reihenfolge |
+| verrauscht, gleiche Epoche | perfekt/ungefähr | 1,58–1,61 / 6,1–6,4 mas |
+| zum Vergleich: verrauscht, ohne `.ahead` | – | 1496 / 9252 mas |
+
+Mit `.ahead` ist die Lösung im Normalbetrieb gut und hängt praktisch nicht von der Reihenfolge ab. Der Restfehler von 1,6 mas RMS ist bei 15 mas Referenzgenauigkeit plausibel rauschbegrenzt. Auch rauschfrei bleibt aber ein Maximum von ~5 mas statt µas.
+
+**Andere Einstellungen** (`.ahead` „ungefähr“, gleiche Epoche, Reihenfolgen 1…6 / 6…1):
+
+| Option | rauschfrei RMS / Max | verrauscht RMS / Max |
+|---|---|---|
+| `MOSAIC_TYPE SAME_CRVAL` | 0,17 / 4,6 mas | 1,60 / 6,1 mas |
+| `DISTORT_DEGREES 4` | 0,29 / 14 mas | 1,65 / 6,6 mas |
+| `CROSSID_RADIUS 6` | 0,90 / 18 mas | 1,67 / **8,5 bzw. 21 mas** (je nach Reihenfolge) |
+| `STABILITY_TYPE EXPOSURE` | 0,55 / 32 mas | 4,8 / 36 mas |
+| `MOSAIC_TYPE LOOSE` | 15 / 145 mas | 15 / 135 mas |
+| `MOSAIC_TYPE FIX_FOCALPLANE` | **258 / 2100 mas** | **1500–1800 / 7200–7900 mas** |
+
+`FIX_FOCALPLANE` zerstört selbst mit gutem `.ahead` die Lösung; `LOOSE` und `EXPOSURE` liegen ohne Rauschen um 30–150 mas daneben. Das ist noch zu klären.
+
+**Interne Statistik hängt von der Reihenfolge ab und ist zu optimistisch:**
+- Die wahre Zentroid-Streuung der verrauschten Daten ist 26 mas pro Achse (S/N > 10), bei korrekten Fehlerangaben, also erwartet χ² ≈ 1.
+- SCAMP meldet bei Reihenfolge 1…6 19,4 mas (χ² 0,74, 131 573 Detektionen) und bei 6…1 13,3 mas (χ² 0,63, 116 336 Detektionen). Die Lösung ist dabei fast gleich.
+- Ursache: Die Abschlussstatistik kreuzidentifiziert erneut mit dem Radius `ASTRCLIP_NSIGMA × sig_referr`. Welche Detektionen dabei verknüpft werden, hängt bei gleicher Epoche von der Reihenfolge ab. Ausreißer und Fehlzuordnungen fallen heraus, und die Streuung wird systematisch unterschätzt.
