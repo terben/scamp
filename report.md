@@ -669,3 +669,48 @@ Mit `.ahead` ist die Lösung im Normalbetrieb gut und hängt praktisch nicht von
 - Die wahre Zentroid-Streuung der verrauschten Daten ist 26 mas pro Achse (S/N > 10), bei korrekten Fehlerangaben, also erwartet χ² ≈ 1.
 - SCAMP meldet bei Reihenfolge 1…6 19,4 mas (χ² 0,74, 131 573 Detektionen) und bei 6…1 13,3 mas (χ² 0,63, 116 336 Detektionen). Die Lösung ist dabei fast gleich.
 - Ursache: Die Abschlussstatistik kreuzidentifiziert erneut mit dem Radius `ASTRCLIP_NSIGMA × sig_referr`. Welche Detektionen dabei verknüpft werden, hängt bei gleicher Epoche von der Reihenfolge ab. Ausreißer und Fehlzuordnungen fallen heraus, und die Streuung wird systematisch unterschätzt.
+
+### `MOSAIC_TYPE FIX_FOCALPLANE`: Ursache und Korrektur (`712dc0d`)
+
+**Eingrenzung:** Mit `MATCH N` und `SOLVE_ASTROM N` geben die `.head`-Dateien die WCS direkt nach der Mosaik-Anpassung (`adjust_mosaic()`) aus. Verglichen mit der unveränderten, perfekten `.ahead`:
+
+| Modus | Abweichung | Art |
+|---|---|---|
+| `UNCHANGED` | 0,0002 mas | – |
+| `SAME_CRVAL` | 374 mas | gleichförmige Verschiebung pro Belichtung (korrigiert der Löser) |
+| `LOOSE` | 2591 mas | pro Chip konstant, in allen Belichtungen gleich |
+| `FIX_FOCALPLANE` | 4125 mas | dasselbe plus eine Drehung pro Belichtung |
+
+**Ursache:** `LOOSE` und `FIX_FOCALPLANE` rufen `crval_to_crpix()` auf.
+- Die Funktion verschiebt CRVAL auf die Feldmitte und setzt CRPIX auf das Pixel des neuen CRVAL. Dieses Pixel wird mit der vollen WCS samt PV-Verzeichnung berechnet.
+- Die PV-Polynome blieben dabei unverändert. Ihre Konstantterme (`PV1_0`/`PV2_0`) wirkten dadurch doppelt.
+- Nachweis: Bei allen 32 Chips entspricht die Verschiebung dem jeweiligen Konstantterm (Differenz ≤ 20 mas bei Termen bis 2,6″).
+- Dieselbe Abbildung mit `PV1_0 = PV2_0 = 0` (`make_ahead.py --no-pv0`) ergibt mit `FIX_FOCALPLANE` 0,70 mas RMS statt 716 mas.
+- SCAMP schreibt solche Konstantterme selbst in seine `.head`-Dateien (im Test bis 8″). Werden SCAMP-Ausgaben als `.ahead` weiterverwendet, ist das der Normalfall.
+- Header ohne PV-Terme (z. B. die Megacam-Testdaten) sind nicht betroffen.
+
+**Korrektur:** Die neue Funktion `shift_tpv()` in `mosaic.c` verschiebt den Ursprung der Polynome exakt auf das neue Referenzpixel: Q(x) = P(x+d) − P(d), eine Taylor-Verschiebung, Grad ≤ 7.
+- Radiale TPV-Terme (`PV_3`, `_11`, `_23`, `_39`) lassen sich so nicht verschieben. SCAMP schreibt sie nicht; kommen sie vor, gibt es eine Warnung und das bisherige Verhalten.
+- Nach der Korrektur weicht `LOOSE` nach der Anpassung nur noch um 0,05 mas ab.
+- Bei `FIX_FOCALPLANE` bleibt pro Belichtung eine Drehung um bis zu 0,04° plus Verschiebung (Rest ≤ 4 mas). Das ist das beabsichtigte Verhalten: Ein gemeinsames Median-CD je Chip ersetzt die Drehfehler der einzelnen Header.
+
+**Ergebnisse** (vorher → nachher, RMS / Max):
+
+| `FIX_FOCALPLANE` | vorher | nachher | zum Vergleich `UNCHANGED` |
+|---|---|---|---|
+| rauschfrei, `.ahead` perfekt | 716 / 3518 mas | 0,70 / 5,7 mas | 0,13 / 5,2 mas |
+| rauschfrei, `.ahead` ungefähr | 258 / 2100 mas | 0,71 / 5,1 mas | 0,18 / 4,6 mas |
+| verrauscht, gleiche Epoche | 1470–1780 / 7200–7900 mas | 1,9 / 9,6 mas | 1,6 / 6,1 mas |
+
+**Weitere Prüfungen:**
+- Die Ergebnisse hängen nicht von der Reihenfolge ab (1…6 / 6…1).
+- `UNCHANGED` und `SAME_CRVAL` sind unverändert (sie rufen die Funktion nicht auf).
+- Megacam-Daten mit `LOOSE` bzw. `FIX_FOCALPLANE`: `.head` identisch.
+- `make check` 8/8.
+
+**Neuer Test** `tests/test_mosaic01.py` (in `make check`, ~30 s):
+- 20 000 Sterne, verrauscht, `.ahead` mit Konstanttermen.
+- Prüft `UNCHANGED` und `FIX_FOCALPLANE` gegen die Wahrheit (RMS < 5 mas, Maximum < 40 mas).
+- Gemessen: 2,4 / 10,5 mas bzw. 2,7 / 16,6 mas. Mit dem alten Code ergibt `FIX_FOCALPLANE` auf denselben Daten 947 / 4942 mas.
+
+**Offen:** `MOSAIC_TYPE LOOSE` bleibt auch nach der Korrektur bei 15 mas RMS und 140 mas Maximum, obwohl die Mosaik-Anpassung jetzt exakt ist. Das ist ein eigenes Problem im Löser.
