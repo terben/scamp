@@ -1,8 +1,9 @@
-# SCAMP: Kompilierung unter Linux – Bericht
+# SCAMP: Kompilierung unter Linux und macOS – Bericht
 
-Stand: 17.11.2026. Die Arbeit lief im Branch `compile-test` (16 Commits auf `72b7e76`),
+Stand: 17.11.2026. Die Linux-Arbeit lief im Branch `compile-test` (16 Commits auf `72b7e76`),
 der per Fast-Forward nach `master` übernommen wurde. Ein weiterer Commit (macOS-Datum,
 Shebangs der Tests und dieser Bericht) folgte direkt auf `master`.
+Die macOS-Arbeit lief im Branch `mac-compile` (siehe Abschnitt 6).
 
 ## 1. Was geändert wurde
 
@@ -52,7 +53,6 @@ Alle Python-Test-Skripte beginnen jetzt mit `#!/usr/bin/env python3` (vorher tei
 
 **Nicht getestet bzw. nicht testbar:**
 - icx mit statisch gelinkter MKL: Es fehlt eine statische OpenMP-Laufzeit (`libiomp5.a`). `configure` meldet das korrekt.
-- macOS.
 - Die Katalogabfragen bei VizieR (PS1/Tycho-2/IGSL): Die Server waren nicht erreichbar.
 
 ## 3. Was unter Linux (Ubuntu/Debian) nötig ist
@@ -112,21 +112,7 @@ make -j && make check
 
 ### macOS
 
-- **MKL:**
-  - Auf Apple Silicon (arm64) gibt es keine MKL.
-  - Auf Intel-Macs nur mit dem Intel-Compiler. Den klassischen icc hat Intel eingestellt, und icx gibt es für macOS nicht. Der MKL-Zweig ist auf macOS damit praktisch tot, und der GCC-MKL-Zweig ist für macOS ausdrücklich ausgeschlossen.
-  - Der macOS-Zweig des MKL-Makros hat außerdem keinen Link-Test und ist ungetestet.
-- **Bibliotheken und Werkzeuge:**
-  - Realistisch ist OpenBLAS über Homebrew. Die Pakete sind „keg-only“, man braucht daher meist `--with-openblas-incdir=$(brew --prefix openblas)/include` und `--with-openblas-libdir=$(brew --prefix openblas)/lib`.
-  - FFTW, PLplot und curl über Homebrew.
-  - Apples Accelerate-Framework (BLAS/LAPACK) wird nicht unterstützt.
-- **`date -R` in `configure.ac`:** behoben. Das Datum wird jetzt mit einem expliziten Format erzeugt, das auch das BSD-`date` versteht.
-- **Werkzeuge:**
-  - `gcc` ist auf macOS in Wirklichkeit clang. Das ist unkritisch, solange keine GCC-spezifischen Optionen aktiv sind.
-  - Libtool heißt bei Homebrew `glibtoolize`. `autogen.sh` muss das finden (nicht geprüft).
-- **Linker:** Apples `ld` kennt `--start-group`/`--end-group` nicht. Davon betroffen sind nur die statischen MKL-Zweige unter Linux, die auf macOS nicht verwendet werden.
-- **Header:** `malloc.h` gibt es auf macOS nicht. Der Code bindet es nur bei `HAVE_MALLOPT` ein, das sollte also unkritisch sein.
-- **Tests:** Die Shebangs sind behoben (`#!/usr/bin/env python3`). Das Python im `PATH`, z. B. von Homebrew, braucht numpy und astropy.
+Siehe Abschnitt 6.
 
 ### Im Code, plattformunabhängig
 
@@ -171,3 +157,56 @@ make -j && make check
 **Noch offen:** `make check` außerhalb des Quellverzeichnisses (VPATH) schlägt fehl. Die Tests
 suchen ihre Daten relativ zum Arbeitsverzeichnis. Das Problem bestand schon vorher und hängt
 nicht mit der BLAS-Wahl zusammen.
+## 6. macOS (Branch `mac-compile`)
+
+### Geänderte Dateien
+
+| Commit | Änderung |
+|---|---|
+| `d965fb9` | **Build-System:** FFTW holt Include- und Bibliothekspfade über pkg-config (`fftw3f`/`fftw3`), wenn keine Pfade angegeben sind. Unter Linux liefert pkg-config für Systempfade nichts, dort ändert sich also nichts. Behoben: falsches Quoting von `FFTW_H` bei `--with-fftw-libdir`. **OpenBLAS:** Das „keg-only“-OpenBLAS von Homebrew wird über `PKG_CONFIG_PATH` gefunden; den Bibliothekspfad aus pkg-config nutzt das Makro nur als letzten Ausweg. Mit der automatischen Bibliothekswahl aus Abschnitt 5 weicht ein `./configure` ohne Optionen auf dem Mac damit auf das OpenBLAS von Homebrew aus, weil ATLAS fehlt. **cURL:** pkg-config wird vor `curl-config` gefragt. |
+| `aa2d75b` | `chealpixstore.c`: `int64_t` statt `long` beim `realloc` und `PRId64` beim Ausgeben. Auf macOS ist `int64_t` `long long`. |
+| `0a6c25a` | **Tests:** `test_chealpixstore` linkt `libfits.a`, das `error()` bereitstellt. Unter Linux wurde nur zufällig die gleichnamige, aber andere glibc-Funktion `error()` verwendet. `test_chealpix` liest `int64_t` mit `SCNd64`. Die Crossid-Tests vergleichen mit `fabs()` statt `abs()`. `abs()` schnitt die Differenzen auf ganze Zahlen ab, die Prüfung war daher wirkungslos (auch unter Linux). Der Moving-Test verschiebt die Felder absichtlich um bis zu 0,3″ und prüft jetzt mit 0,5″ Toleranz statt `FLT_EPSILON`. |
+
+### Getestet
+
+| System | Compiler | Bibliotheken (Homebrew) | `make check` |
+|---|---|---|---|
+| macOS 26.6, Apple Silicon (arm64) | Apple clang 17 | OpenBLAS 0.3.34, FFTW 3.3.11, PLplot 5.15.0, System-libcurl | 6/6, keine Compiler-Warnungen |
+
+- Check-Plots über PLplot (PNG) funktionieren, auch mit der Standard-Kantenglättung über `convert` (ImageMagick 7.1).
+- Auch die bisherigen Optionen mit expliziten Pfaden (`--with-openblas-*`, `--with-fftw-*`, `--with-curl-*`) funktionieren weiterhin.
+- Intel-Macs sind nicht getestet. Dort sollte derselbe Weg funktionieren, Homebrew liegt dann aber unter `/usr/local`.
+
+### Was unter macOS nötig ist
+
+**Pakete:**
+- Xcode bzw. die Command Line Tools: `xcode-select --install`.
+- Über Homebrew:
+  ```
+  brew install autoconf automake libtool pkg-config fftw openblas plplot
+  brew install imagemagick        # optional, für CHECKPLOT_ANTIALIAS Y
+  ```
+- Für `make check` braucht das erste `python3` im `PATH` numpy und astropy.
+
+**Bauen:**
+```
+./autogen.sh
+./configure
+make -j && make check
+```
+Es sind keine Optionen nötig. Mit `--disable-plplot` lässt sich PLplot weglassen; es bringt viele Abhängigkeiten mit (cairo, pango, gcc …).
+
+### Besonderheiten
+
+- **Homebrew-Pfade:** clang durchsucht `/opt/homebrew/include` und `/opt/homebrew/lib` nicht von selbst. Die Makros holen die Pfade deshalb über pkg-config.
+- **Anaconda und curl:** Steht Anaconda im `PATH`, findet man dessen `curl-config` vor `/usr/bin/curl-config`. Früher wurde dann gegen das libcurl von Anaconda gelinkt, und das Programm brach beim Start mit `Library not loaded: @rpath/libcurl.4.dylib` ab. Jetzt kommt das System-libcurl über pkg-config.
+- **Versionsabhängige Pfade:** pkg-config liefert die versionierten Cellar-Pfade (z. B. `/opt/homebrew/Cellar/fftw/3.3.11`). Ein `brew upgrade` zwischen `configure` und `make` erfordert ein neues `configure`. Das fertige Binary verweist dagegen auf die stabilen `/opt/homebrew/opt/...`-Pfade.
+- **`libtoolize`:** `autogen.sh` meldet, `libtoolize` sei nicht verfügbar, nimmt dann aber `glibtoolize`. Die Warnung ist harmlos.
+- **MKL:** Auf Apple Silicon gibt es keine MKL. Auf Intel-Macs bräuchte man den Intel-Compiler, den es für macOS nicht mehr gibt. Der MKL-Zweig des Makros ist auf macOS daher ungetestet.
+- **ATLAS:** Bei Homebrew nicht verfügbar.
+- **Accelerate:** Apples Accelerate-Framework (BLAS/LAPACK, aber kein LAPACKe) wird nicht unterstützt.
+
+### Offen
+
+- Nach den Änderungen am Build-System muss noch einmal unter Linux (Ubuntu) `make check` laufen, bevor `mac-compile` nach `master` geht.
+- Die VizieR-Abfragen scheitern auch auf dem Mac (`Connection timeout for vizier.unistra.fr`), siehe Abschnitt 4.
