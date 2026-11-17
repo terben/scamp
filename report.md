@@ -714,3 +714,33 @@ Mit `.ahead` ist die Lösung im Normalbetrieb gut und hängt praktisch nicht von
 - Gemessen: 2,4 / 10,5 mas bzw. 2,7 / 16,6 mas. Mit dem alten Code ergibt `FIX_FOCALPLANE` auf denselben Daten 947 / 4942 mas.
 
 **Offen:** `MOSAIC_TYPE LOOSE` bleibt auch nach der Korrektur bei 15 mas RMS und 140 mas Maximum, obwohl die Mosaik-Anpassung jetzt exakt ist. Das ist ein eigenes Problem im Löser.
+
+### `MOSAIC_TYPE LOOSE`: Ursache (ohne Korrektur)
+
+Auch nach der Korrektur von `crval_to_crpix()` liegt `LOOSE` (mit dem Standard `STABILITY_TYPE INSTRUMENT`) ohne Rauschen und mit perfekter `.ahead` bei 15 mas RMS und 142 mas Maximum.
+
+**Eingrenzung** (rauschfrei, `.ahead` perfekt, RMS / Max):
+
+| Lauf | Ergebnis |
+|---|---|
+| `LOOSE`, `INSTRUMENT` | 15 / 142 mas |
+| `LOOSE`, `EXPOSURE` | 0,59 / 35 mas (wie `UNCHANGED` + `EXPOSURE`: 0,58 / 34 mas) |
+| `LOOSE`, nur Matching (`SOLVE_ASTROM N`) | 16,8 / 136 mas |
+| `UNCHANGED`, nur Matching | 0,34 / 2,0 mas |
+
+**Ursache:**
+- Bei `LOOSE` passt das Pattern-Matching jeden Chip jeder Belichtung einzeln an (Drehung, Skala, Scherung, Verschiebung; `match_refine()`). Selbst mit exakten Referenzen ist das pro Chip und Belichtung bis 138 mas ungenau (Median 7 mas, 90 % 73 mas).
+- Mit `STABILITY_TYPE INSTRUMENT` addiert der Löser auf einen Chip in allen Belichtungen dieselbe Korrektur (`mat_to_wcs()`). Die unterschiedlichen Fehler aus dem Matching bleiben daher stehen; das Endergebnis entspricht fast genau dem Stand nach dem Matching.
+- Mit `STABILITY_TYPE EXPOSURE` hat jeder Chip jeder Belichtung eigene Koeffizienten, und die Fehler verschwinden.
+- Die Matching-Änderungen wirken zudem auf den Eingang des nichtlinearen PV-Polynoms und sind deshalb nicht rein affin (Rest nach Abzug einer affinen Transformation bis 37 mas).
+
+**Verworfener Korrekturversuch:**
+- Ansatz: nach dem `LOOSE`-Matching die Chiplagen über alle Belichtungen per Median zu einer gemeinsamen Fokalebene zusammenführen (wie `FIX_FOCALPLANE`), danach jede Belichtung als Ganzes neu matchen.
+- Ergebnis: 72–83 mas RMS, also schlechter. Die Chiplagen aus dem Matching pro Chip sind zu ungenau, um daraus eine Fokalebene zu bilden. Ohne erneutes Matching gingen zusätzlich die Zeigekorrekturen verloren (3″).
+
+**Folgerung:**
+- `LOOSE` passt zu `STABILITY_TYPE EXPOSURE`, nicht zu `INSTRUMENT`.
+- Für ein stabiles Instrument mit gutem `.ahead` sind `UNCHANGED`, `SAME_CRVAL` oder (nach der Korrektur oben) `FIX_FOCALPLANE` zu verwenden.
+- SCAMP lässt die Kombination `LOOSE` + `INSTRUMENT` (Standard) bisher ohne Hinweis zu.
+
+**Nebenbefund zum Restfehler in der Standardkonfiguration:** Bei `UNCHANGED` liegt die WCS nach dem Matching bei 0,34 / 2,0 mas, nach der Lösung bei 0,13 / 5,2 mas. Der Löser senkt also den RMS, erhöht aber das Maximum; der Restfehler von ~5 mas entsteht in der Lösung selbst.
