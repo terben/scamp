@@ -379,7 +379,6 @@ scamp.spec
 debian/Makefile
 debian/changelog
 doc/Makefile
-doc/src/conf.py
 man/Makefile
 man/scamp.1
 src/Makefile
