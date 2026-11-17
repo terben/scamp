@@ -133,7 +133,10 @@ int	cplot_init(int nx, int ny, cplotenum cplottype)
 		prefs.cplot_res[0]? prefs.cplot_res[0] : CPLOT_DEFRESX,
 		prefs.cplot_res[1]? prefs.cplot_res[1] : CPLOT_DEFRESY,
 		plotfilename) < MAXCHAR)
-      system(str);
+      {
+      if (system(str))
+        warning("Anti-aliasing of check-plot failed: ", plotfilename);
+      }
     else
       warning("Check-plot filename too long for anti-aliasing: ",
 		plotfilename);

@@ -63,7 +63,7 @@ pkeystruct key[] =
   {"ASTR_IMAFLAGSMASK", P_INT, &prefs.astr_imaflagsmask, 0,0x7fffffff, 0.0,0.0},
   {"ASTRACCURACY_KEY", P_STRING, prefs.astraccuracy_key},
   {"ASTRACCURACY_TYPE", P_KEY, &prefs.astraccuracy_type, 0,0, 0.0,0.0,
-    "SIGMA-PIXEL", "SIGMA-ARCSEC", "TURBULENCE-ARCSEC", ""},
+    {"SIGMA-PIXEL", "SIGMA-ARCSEC", "TURBULENCE-ARCSEC", ""}},
   {"ASTRCLIP_NSIGMA", P_FLOAT, &prefs.astrclip_nsig, 0,0, 0.0,1e31},
   {"ASTREF_BAND", P_STRING, prefs.astref_bandname},
   {"ASTREF_CATALOG", P_KEY, &prefs.astrefcat, 0,0, 0.0,0.0,

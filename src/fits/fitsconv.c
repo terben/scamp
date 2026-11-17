@@ -117,7 +117,8 @@ tabstruct *asc2bin_tab(catstruct *catin, char *tabinname, catstruct *catout,
         }
       key->nobj = 1;
 /*----Allocate memory and copy data in the same time*/
-      QMEMCPY(ptr, key->ptr, char, key->nbytes);
+      QMALLOC(key->ptr, char, key->nbytes);
+      memcpy(key->ptr, ptr, key->nbytes);
       if (add_key(key, tabout, 0)==RETURN_ERROR)
         {
         sprintf(comment, "%s keyword found twice in ",
