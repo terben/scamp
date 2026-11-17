@@ -264,6 +264,13 @@ the executable as portable as possible (default = no)])],
 	[], [enable_best_link="no"])
 AC_MSG_RESULT([$enable_best_link])
 
+# Profiling and "best" (partly static) linking are mutually exclusive; this
+# must be settled before the libraries are configured (e.g., MKL)
+if test "$enable_profiling" = "yes" && test "$enable_best_link" = "yes"; then
+  AC_MSG_WARN([--enable-best-link is ignored in profiling mode])
+  enable_best_link="no"
+fi
+
 ################# Actions to complete in case of multhreading ################
 AC_DEFINE_UNQUOTED(THREADS_NMAX, $n_pthreads,[Maximum number of POSIX threads])
 if test "$use_pthreads" = "yes"; then
@@ -350,14 +357,9 @@ else
 fi
 AM_CONDITIONAL(USE_PLPLOT, test "$use_plplot" = "yes")
 
-# Compile with profiling option
+# Compile with profiling option (-pg is understood by GCC, icc and icx)
 if test "$enable_profiling" = "yes"; then
-  if test "$enable_iccx" = "yes"; then
-    AM_CFLAGS="$AM_CFLAGS -pq"
-  else
-    AM_CFLAGS="$AM_CFLAGS -pg"
-  fi
-  enable_best_link="no"
+  AM_CFLAGS="$AM_CFLAGS -pg"
 fi
 
 # "Best" linking option
