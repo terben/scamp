@@ -27,6 +27,9 @@ ap = argparse.ArgumentParser()
 ap.add_argument("outdir")
 ap.add_argument("--noise", type=int, default=1, help="centroid/reference noise on (1) or off (0)")
 ap.add_argument("--seed", type=int, default=1)
+ap.add_argument("--camera-seed", type=int, default=None,
+                help="separate random seed for the true chip layout (same camera "
+                     "in several data sets); default: drawn from --seed")
 ap.add_argument("--ra0", type=float, default=150.10)
 ap.add_argument("--dec0", type=float, default=2.20)
 ap.add_argument("--nstar", type=int, default=60000)
@@ -89,7 +92,9 @@ ldac_write_mef(os.path.join(args.outdir, "ref.cat"), [(refhead, [
 ])])
 
 # ---------------- camera ----------------
-lay_true = true_layout(rng, args.layout_off, args.layout_rot)
+lay_true = true_layout(rng if args.camera_seed is None
+                       else np.random.default_rng(args.camera_seed),
+                       args.layout_off, args.layout_rot)
 lay_nom = nominal_layout()
 nchip = len(lay_nom)
 

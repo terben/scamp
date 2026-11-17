@@ -778,3 +778,38 @@ UNCHANGED, SAME_CRVAL or FIX_FOCALPLANE
   - `LOOSE` + `INSTRUMENT` bricht ab.
   - `LOOSE` + `EXPOSURE`, `UNCHANGED` + `INSTRUMENT` sowie die Listen `LOOSE,UNCHANGED` / `EXPOSURE,INSTRUMENT` (mehrere Instrumente) laufen.
   - `make check` 8/8.
+
+### Zweistufiger Ablauf: Instrumentmodell mit `LOOSE` + `EXPOSURE` bestimmen
+
+**Aufbau:**
+- Zwei Datensätze mit **derselben Kamera** (`gen_synth_mosaic.py --camera-seed 7`). Die Chiplagen weichen um 43 Pixel rms und 0,1° von den Headern ab.
+  - Kalibrierdatensatz A: Feld bei (150,1°, +2,2°).
+  - Wissenschaftsdatensatz B: anderes Feld (210,3°, −12,5°), andere Pointings und Header-Fehler.
+- Stufe 1: A ohne `.ahead` mit `LOOSE` + `EXPOSURE`.
+- Instrumentmodell: die `.head` einer Belichtung von A, ohne CRVAL (`tests/head2ahead.py`). Die Zeigerichtung kommt so aus dem Header jedes Bildes.
+- Stufe 2: B mit diesem Modell als `.ahead` und `STABILITY_TYPE INSTRUMENT`.
+
+**Ergebnisse auf B** (RMS / Gitter-Maximum, 60 000 Sterne):
+
+| Lauf | rauschfrei | verrauscht |
+|---|---|---|
+| ohne `.ahead` (Standard) | 15″ / 34″ | 15″ / 34″ |
+| `LOOSE` + `EXPOSURE` direkt auf B | 1,0 / 37 mas | 5,0 / 37 mas |
+| Modell aus A-Belichtung 1, `UNCHANGED`/`SAME_CRVAL` | 0,08 / 1,9 mas | 1,55 / 5,7 mas |
+| Modell aus A-Belichtung 1, `FIX_FOCALPLANE` | 0,09 / 2,0 mas | 1,55 / 5,8 mas |
+| Modell aus A-Belichtung 3 (alle Modi) | 0,07 / 1,6–1,8 mas | 1,55 / 5,7 mas |
+| zum Vergleich: perfekte `.ahead` | **0,000 / 0,000 mas** | 1,54 / 5,6 mas |
+
+Stufe 1 auf A selbst: 0,84 / 56 mas rauschfrei, 4,8 / 46 mas verrauscht.
+
+**Folgerungen:**
+- Der zweistufige Ablauf funktioniert. Mit Rauschen ist das Modell aus A so gut wie eine perfekte `.ahead`, unabhängig von der gewählten Belichtung und vom Mosaikmodus.
+- Er ist deutlich besser als `LOOSE` + `EXPOSURE` direkt (Maximum 5,7 statt 37 mas), weil `EXPOSURE` viel mehr freie Parameter hat.
+- **Nebenbefund:** Auf B ergibt die perfekte `.ahead` rauschfrei eine exakte Lösung (0,000 mas). Auf dem früheren Datensatz waren es 0,13 / 5,2 mas. Der Restfehler der Standardkonfiguration hängt also vom Datensatz ab (Feld, Header-Fehler) und ist kein grundsätzlicher Fehler des Lösers.
+
+**Neuer Test** `tests/test_mosaic02.py` (in `make check`, ~30 s, 20 000 Sterne, verrauscht) prüft:
+- dass `LOOSE` + `INSTRUMENT` abgelehnt wird;
+- Stufe 1 auf A: RMS < 15 mas, Maximum < 150 mas; gemessen 8,8 / 84 mas;
+- Stufe 2 auf B mit `FIX_FOCALPLANE` und `UNCHANGED`: RMS < 5 mas, Maximum < 40 mas; gemessen 2,56 / 10,0 mas bzw. 2,56 / 10,1 mas. Ohne `.ahead` wären es 15″ / 38″.
+
+`make check` 9/9.
