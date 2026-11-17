@@ -343,3 +343,85 @@ Ein Cygwin-Build ließe sich ohne eigenen Windows-Rechner über GitHub Actions p
 - Cygwin-Paket `libfftw3-devel`: https://cygwin.com/packages/summary/libfftw3-devel.html (Dateiliste `libfftw3_3`: https://cygwin.com/packages/x86_64/libfftw3_3/libfftw3_3-3.3.11-1)
 - OpenBLAS unter Cygwin nur als Laufzeitersatz: https://sourceware.org/pipermail/cygwin-announce/2023-February/010968.html und https://sourceware.org/pipermail/cygwin/2020-April/244676.html
 - PLplot unter Cygwin: https://sourceforge.net/p/plplot/wiki/Setup_cygwin/
+
+## 9. Warnungsanalyse unter Linux mit gcc und icx (Branch `robust_code`)
+
+Stand: 17.11.2026. Diese Analyse ergänzt Abschnitt 7 (macOS, clang/GCC 16) um gcc 11 und icx 2026.2 unter Ubuntu 22.04. Dazu kommt ein Laufzeittest mit AddressSanitizer und UBSan. Gebaut wurde jeweils in einer Kopie des Stands `b953075` mit `--enable-mkl`.
+
+### Vorgehen
+
+| Build | Optionen | Warnungen |
+|---|---|---|
+| gcc 11.4 | `-Wall -Wextra -Wformat=2 -Wformat-overflow=2 -Wformat-truncation=2 -Wstringop-overflow=4 -Wnull-dereference -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wshadow -Wcast-qual -Wconversion -Warray-bounds=2 -Wrestrict -Wswitch-enum -Wfloat-equal` u. a., dazu `-fanalyzer` | 1300 |
+| icx 2026.2 | `-Wall -Wextra -Wformat=2 -Wconditional-uninitialized -Wsometimes-uninitialized -Wunreachable-code -Wshorten-64-to-32 -Wcomma -Wloop-analysis -Wfortify-source` u. a. | 580 |
+| gcc 11.4, `-O1 -fsanitize=address,undefined` | `make check` und gezielte Testläufe | 4 Laufzeitfehler (s. u.) |
+
+Wie in Abschnitt 7 ist der Großteil harmlos. Das betrifft vor allem:
+- `float`/`double`-Umwandlungen (`-Wconversion`, `-Wfloat-conversion`, ~350),
+- nicht initialisierte Struct-Felder (`-Wmissing-field-initializers`, ~190),
+- Gleichheitsvergleiche von Gleitkommazahlen (190),
+- ungenutzte Variablen (~150),
+- 64→32-Bit-Verkürzungen (63, gleiche Stellen wie in Abschnitt 7),
+- Speicherlecks laut `-fanalyzer` (66). Fast alle liegen auf Pfaden, die mit `error()` enden.
+
+### Echte Fehler (bestätigt und behoben)
+
+| Stelle | Hinweis durch | Problem | Nachweis |
+|---|---|---|---|
+| `preflist.h:145,211` / `prefs.h:74-76` (ebenso `ASTR_FLAGSMASK`, `PHOT_FLAGSMASK`) | UBSan (misaligned store) | `FLAGS_MASK` und `WEIGHTFLAGS_MASK` sind `P_INT`, die Felder aber `unsigned short`. `readprefs()` schreibt 4 Byte in ein 2-Byte-Feld. **Folge 1:** `WEIGHTFLAGS_MASK` überschreibt die unteren 16 Bit von `IMAFLAGS_MASK`, wenn es danach gelesen wird (z. B. auf der Kommandozeile). **Folge 2:** Im XML steht `Flags_Mask` falsch. **Folge 3:** Auf Big-Endian-Systemen wären die Masken immer 0. | Mit `IMAFLAGS_MASK 0x10001` in der Konfiguration und `-WEIGHTFLAGS_MASK 0xff` ergibt sich `ImaFlags_Mask = 65536`. Mit den Standardwerten steht im XML `Flags_Mask = 16711920` (0x00FF00F0) statt 240. |
+| `astrefcat.c:1474-1554` (`read_astrefsamples`, Referenzkatalog aus Datei) | gcc `-Wmaybe-uninitialized`, icx `-Wconditional-uninitialized` | `dobsdate`/`obsdate` werden nicht mit `NULL` vorbelegt (anders als die übrigen Spaltenzeiger). Ist `OBSDATE` im Katalog `float`, wird der nicht initialisierte `double`-Zeiger dereferenziert. Gleiches Muster wie der in Abschnitt 7 behobene Fehler in `samples.c`. | Referenzkatalog mit `OBSDATE` als `1E`: der ASan-Build stürzt in `astrefcat.c:1554` ab (SEGV). Der normale Build läuft nur zufällig durch. |
+| `astrefcat.c:1474` | gcc `-fanalyzer` (NULL-Dereferenz) | Die Bandprüfung („enough bands“) verwendet `key` von `OBSDATE` statt von der Magnitudenspalte. Fehlt `OBSDATE` und ist `band>0`, folgt eine NULL-Dereferenz. Sonst wird die falsche Spalte geprüft. | Code-Durchsicht |
+| `prefs.c:625-626` | UBSan (index -1) | `REF_NTRIES` gibt es in `preflist.h` nicht. `nref_ntries` ist also immer 0, und `ref_ntries[-1]` wird gelesen. `ref_ntries` wird nirgends benutzt (toter Code mit undefiniertem Verhalten). | Bei jedem Lauf |
+| `catout.c:325-333`, `:566-574` | gcc `-fanalyzer` (file leak) | Bei `MERGEDOUTCAT_TYPE`/`FULLOUTCAT_TYPE ASCII_VOTABLE` wird die Ausgabedatei nie geschlossen. Erst `exit()` schreibt sie; bei einem späteren Absturz ist sie unvollständig. | Code-Durchsicht |
+| `dgeomap.c:120` | gcc `-Wformat-overflow` | `str[64]` für „Generating differential geometry map for instrument A%d, set %d/%d“ passt nur bei einstelligen Zahlen (63 Zeichen + NUL). Mit `SAVE_DGEOMAP Y` und mindestens 10 Sets (Mosaikkameras) oder Instrumenten läuft der Stack-Puffer über. | Nachgezählt |
+
+### Korrekturen
+
+| Datei | Änderung |
+|---|---|
+| `prefs.h` | `sexflags_mask`, `wflags_mask`, `astr_sexflagsmask` und `phot_sexflagsmask` sind jetzt `unsigned int`, passend zu `P_INT`. Ein Abgleich aller `preflist.h`-Einträge mit den Feldtypen (per gdb `whatis`) fand keine weiteren Abweichungen. |
+| `astrefcat.c` | `dobsdate`/`obsdate` werden mit `NULL` vorbelegt. Die Bandprüfung folgt jetzt direkt auf das Lesen der Magnitudenspalte und verwendet deren `key`. |
+| `prefs.c`, `prefs.h` | Die Schleife über `ref_ntries` und die ungenutzten Felder `ref_ntries`/`nref_ntries` sind entfernt. |
+| `catout.c` | Die VOTable-Ausgabe wird geschlossen, wenn sie nicht nach `stdout` geht. |
+| `dgeomap.c` | Der Puffer hat jetzt `MAXCHAR` Zeichen, geschrieben wird mit `snprintf`. |
+| `tests/test_crossid_single_catalog*.c` | `calloc` statt `malloc`, nach `realloc` wird der neue Bereich genullt. `fgroupstruct` wird genullt, `fopen` geprüft und die Datei geschlossen. |
+
+**Nachgeprüft:**
+- Mit `IMAFLAGS_MASK 0x10001` und `-WEIGHTFLAGS_MASK 0xff` ergibt sich `ImaFlags_Mask = 65537`, und `Flags_Mask` steht im XML mit 240.
+- Der Referenzkatalog mit `float`-`OBSDATE` läuft im ASan-Build ohne Fehler.
+- Die VOTable aus `MERGEDOUTCAT_TYPE ASCII_VOTABLE` ist vollständig und gültiges XML.
+- `make check` ergibt 6/6 mit gcc, mit icx und mit gcc + ASan/UBSan, ohne Laufzeitmeldungen.
+
+### Potentielle Probleme (nur bei ungewöhnlichen Eingaben, nicht behoben)
+
+- **`prefs.c:186-193`:** Beim Einsetzen von `$VAR` in Konfigurationswerte fehlt jede Längenprüfung (`envname[512]`, `value2[MAXCHARL]`). Eine sehr lange Umgebungsvariable führt zu einem Überlauf.
+- **`fitsutil.c:575-590` (`fitswrite`, `H_STRINGS`):** Ein String ab 79 Zeichen bzw. mit Hochkommas wird ohne Endnull nach `str2[81]` kopiert und überläuft dann `str[81]`. Die heutigen Aufrufer übergeben kürzere Werte (FITS-Karten).
+- **`fitsutil.c:532`:** `%16.8f` für sehr große Header-Werte (> 1e60) überläuft `str[81]`.
+- **`fitscat.c:140`:** `sprintf(str2, "%s …", str2, …)` mit überlappenden Puffern ist undefiniertes Verhalten. `addhistoryto_cat()` wird von SCAMP aber nicht aufgerufen.
+- **`quadtree.c:135`:** Das Ergebnis von `calloc` wird nicht geprüft.
+- **`prefs.c:716`:** Der Rückgabewert von `fgets` wird ignoriert; das ist hier unschädlich.
+
+### Geprüft, aber unkritisch
+
+- **`fgroup.c:563` (double free laut `-fanalyzer`):** Fehlalarm, die Felder werden mit `calloc` angelegt und je einmal freigegeben.
+- **`chealpix.c:932` (negativer Shift):** `nside` ist in SCAMP immer eine Zweierpotenz.
+- **`match.c:182/220`, `photsolve.c:207`, `proj.c`, `wcs.c` (icx: „may be uninitialized“):** Schleifen laufen mindestens einmal, bzw. die Zweige sind vollständig.
+- **`astrefcat.c:233`:** `astref_ctype` ist ohne Endnull deklariert, wird aber nur mit `strncpy(…, 8)` gelesen.
+- **`fitsbody.c:657`, `fitscheck.c:70`:** Vorzeichenvergleiche mit positiven Werten.
+- **`fitsconv.c:120`, `fitshead.c:327`, `fitstab.c:252`:** Fehlalarme (Makro-Prüfung auf ein Array bzw. vorher abgefangene Fälle).
+
+### Tests unter AddressSanitizer
+
+Vor den Korrekturen ergab `make check` mit ASan/UBSan 4/6. Die beiden Crossid-Tests (`test_crossid_single_catalog*`) scheitern. Die Ursache liegt in den Tests, nicht in SCAMP: Sie legen `fieldstruct`, `setstruct` und die Samples mit `malloc` statt `calloc` an und verlassen sich darauf, dass `nextsamp`/`prevsamp` 0 sind. Mit `ASAN_OPTIONS=max_malloc_fill_size=0` bestehen beide. SCAMP selbst setzt die Samples in `malloc_samples`/`realloc_samples` korrekt auf 0. Die beiden Python-Tests liefen unter ASan ohne Speicherfehler; gemeldet wurden nur die oben genannten UBSan-Befunde in `prefs.c` und `xml.c`. Nach den Korrekturen ergibt sich 6/6 ohne Meldungen.
+
+### So wiederholen
+
+```
+./configure CC=gcc --enable-mkl CFLAGS="-g -O2 -Wall -Wextra -Wformat=2 -Wformat-overflow=2 \
+  -Wformat-truncation=2 -Wstringop-overflow=4 -Wnull-dereference -Wconversion -fanalyzer"
+./configure CC="icx --sysroot=/" --enable-mkl CFLAGS="-g -O2 -Wall -Wextra -Wformat=2 \
+  -Wconditional-uninitialized -Wsometimes-uninitialized -Wshorten-64-to-32 -Wunreachable-code"
+./configure CC=gcc --enable-mkl CFLAGS="-g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined" \
+  LDFLAGS="-fsanitize=address,undefined"
+ASAN_OPTIONS=detect_leaks=0 make check
+```
