@@ -297,6 +297,8 @@ setstruct *read_samples(setstruct *set, tabstruct *tab, char *rfilename)
     }
 
     /* Load optional SExtractor SPREAD_MODEL parameter */
+    dspread = NULL;
+    spread = NULL;
     if ((key = name_to_key(keytab, "SPREAD_MODEL")))
     {
         if (key->ttype == T_DOUBLE)
@@ -305,24 +307,16 @@ setstruct *read_samples(setstruct *set, tabstruct *tab, char *rfilename)
             spread = (float *)key->ptr;
         prefs.spread_flag = 1;
     }
-    else
-    {
-        dspread = NULL;
-        spread = NULL;
-    }
 
     /* Load optional SExtractor SPREADERR_MODEL parameter */
+    dspreaderr = NULL;
+    spreaderr = NULL;
     if ((key = name_to_key(keytab, "SPREADERR_MODEL")))
     {
         if (key->ttype == T_DOUBLE)
             dspreaderr = (double *)key->ptr;
         else
             spreaderr = (float *)key->ptr;
-    }
-    else
-    {
-        dspreaderr = NULL;
-        spreaderr = NULL;
     }
 
     /* Try to load the set of context keys */
