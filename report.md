@@ -617,3 +617,17 @@ Zum Vergleich mit der Wahrheit (S1, Einzelchip): Positions-RMS je Belichtung 2,9
 7. **Kleinigkeit in `astrclip_fgroup()`:** `dr2` summiert beide Achsen, wird aber mit der Schwelle pro Achse verglichen.
 
 **Mit Rauschen** (Standardrauschen, 6″ Radius, drei iterierte Läufe): 2,3 mas RMS, 21 mas Maximum.
+
+**Abhängigkeit von der Reihenfolge der Eingabekataloge** (verrauschte Daten, ein Thread, also deterministisch):
+- Die Kreuzidentifikation (`cmp_samples()` in `chealpixstore.c`) ordnet die Detektionen nach Epoche und nur bei gleicher Epoche nach der Position in der Eingabeliste (`fieldindex`).
+- **Verschiedene Epochen** (`MJD-OBS` im Abstand von 0,01 d): Die Reihenfolge wirkt sich nur wenig aus (RMS 75,6–76,2 mas, Maximum 830–842 mas bei Radius 6″).
+- **Gleiche Epoche** (`gen_synth_mosaic.py --same-epoch`, sonst identische Daten):
+
+| Reihenfolge | Radius 6″: RMS / Max | Radius 2″: RMS / Max |
+|---|---|---|
+| 1 2 3 4 5 6 | 76 / 841 mas | 1496 / 9252 mas |
+| 2 4 6 1 3 5 | 49 / 1763 mas | 1459 / 9106 mas |
+| 3 1 6 2 5 4 | 50 / 1665 mas | 1247 / 8968 mas |
+| 6 5 4 3 2 1 | 714 / 5298 mas | 1389 / 7389 mas |
+
+Die Lösungen für die Reihenfolgen „1…6“ und „6…1“ unterscheiden sich um bis zu 5″, und `FLXSCALE` um bis zu 0,059 mag. Die Reihenfolge entscheidet also bei gleicher Epoche über die Kreuzidentifikation und damit über das Ergebnis.

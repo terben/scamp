@@ -35,6 +35,8 @@ ap.add_argument("--k3var", type=float, default=0.0,
                 help="relative rms variation of the radial distortion between exposures")
 ap.add_argument("--dscale", type=float, default=1.0,
                 help="scale factor for the instrument distortion (0 = none)")
+ap.add_argument("--same-epoch", action="store_true",
+                help="give all exposures the same MJD-OBS")
 ap.add_argument("--refsig", type=float, default=15.0, help="reference catalog error (mas)")
 ap.add_argument("--refmaglim", type=float, default=20.0)
 ap.add_argument("--hdr-pos", type=float, default=3.0, help="header pointing error rms (arcsec)")
@@ -138,7 +140,8 @@ for e in range(args.nexp):
                 card("NAXIS1", NAXIS1), card("NAXIS2", NAXIS2), card("PCOUNT", 0),
                 card("GCOUNT", 1), card("EXTNAME", "CCD_%02d" % (c + 1)),
                 card("OBJECT", "SYNTH"), card("FILTER", "r"), card("EXPTIME", 100.0),
-                card("AIRMASS", 1.0), card("MJD-OBS", 60000.0 + 0.01 * e),
+                card("AIRMASS", 1.0),
+                card("MJD-OBS", 60000.0 + (0.0 if args.same_epoch else 0.01 * e)),
                 card("EQUINOX", 2000.0), card("RADESYS", "ICRS"),
                 card("CTYPE1", "RA---TAN"), card("CTYPE2", "DEC--TAN"),
                 card("CUNIT1", "deg"), card("CUNIT2", "deg"),
