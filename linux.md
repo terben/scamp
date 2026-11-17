@@ -1,20 +1,18 @@
-# Branch `mac-compile` unter Linux (Ubuntu) testen
+# macOS-Änderungen unter Linux (Ubuntu) testen
 
-Ziel: Prüfen, dass die macOS-Änderungen am Build-System (FFTW, OpenBLAS und
-cURL über pkg-config) unter Linux nichts verändern und dass alle Tests
-weiterhin bestehen.
+Ziel: Prüfen, dass die macOS-Änderungen (Build-System: FFTW, OpenBLAS und
+cURL über pkg-config; Korrekturen aus der Warnungsanalyse) unter Linux nichts
+verändern und dass alle Tests weiterhin bestehen. Die Änderungen sind auf
+`master` (auf den Commit „Make plain ./configure work“ aufgesetzt).
 
-## 1. Branch holen
-
-Voraussetzung: Der Branch `mac-compile` wurde vom Mac aus gepusht
-(`git push -u origin mac-compile`).
+## 1. Stand holen
 
 ```
 cd ~/git/scamp            # bzw. dein Pfad zum Repository
 git status                # sollte sauber sein
-git fetch origin
-git checkout mac-compile
-git log --oneline -5      # oberster Commit: "Add a macOS section to the build report"
+git checkout master
+git pull
+git log --oneline -12     # u. a. "Find Homebrew libraries on macOS ..."
 ```
 
 Wenn eine conda-Umgebung aktiv ist, die `CC=icx` setzt, für die GCC-Builds
@@ -59,22 +57,28 @@ grep -E "^# (TOTAL|PASS|FAIL)" tests/test-suite.log
 
 Erwartet: 6 von 6 bestanden.
 
-## 5. ATLAS (Standard ohne Option)
-
-Wie bisher braucht ATLAS das ATLAS-eigene `cblas.h` (siehe report.md,
-Abschnitt 3: `update-alternatives` oder `--with-atlas-incdir`).
+## 5. Ohne Option (automatische Wahl: ATLAS, sonst OpenBLAS)
 
 ```
 make distclean
-./configure 2>&1 | tee configure-atlas.log
+./configure 2>&1 | tee configure-auto.log
 make -j && make check
-grep -E "OpenBLAS is enabled|cURL pkg-config|cmdline" configure-atlas.log
+grep -E "linear algebra library|cURL pkg-config|cmdline" configure-auto.log
 grep -E "^# (TOTAL|PASS|FAIL)" tests/test-suite.log
 ```
 
 Erwartet:
-- `checking whether OpenBLAS is enabled... no`: Unter Linux bleibt ATLAS der Standard.
+- `checking for the linear algebra library... ATLAS` oder `... OpenBLAS`, je
+  nachdem, worauf die `cblas.h`-Alternative zeigt (siehe report.md, Abschnitt 5).
 - 6 von 6 bestanden.
+
+Optional, mit ATLAS erzwungen (braucht das ATLAS-eigene `cblas.h`, siehe
+report.md, Abschnitt 3):
+
+```
+make distclean
+./configure --with-atlas-incdir=<Verzeichnis> && make -j && make check
+```
 
 ## 6. Optional: Intel-Compiler
 

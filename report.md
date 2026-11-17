@@ -117,7 +117,7 @@ Siehe Abschnitt 6.
 ### Im Code, plattformunabhängig
 
 - **VizieR-Abfragen:** SCAMP fragt per `http://` an. Mehrere Spiegel waren beim Test nicht erreichbar oder lieferten leere Tabellen. Es lohnt sich, die Standard-Server (`REF_SERVER`) und die Umstellung auf `https://` zu prüfen.
-- **Compiler-Warnungen:** Mit maximalen Warnstufen untersucht; die echten Probleme sind behoben, siehe Abschnitt 6. Übrig sind vor allem ungenutzte Variablen und nur theoretische `sprintf`-Überläufe (z. B. `xml.c:214`, `astrefcat.c:304`).
+- **Compiler-Warnungen:** Mit maximalen Warnstufen untersucht; die echten Probleme sind behoben, siehe Abschnitt 7. Übrig sind vor allem ungenutzte Variablen und nur theoretische `sprintf`-Überläufe (z. B. `xml.c:214`, `astrefcat.c:304`).
 - **Dokumentation:** Sphinx meldet noch 10 inhaltliche Warnungen, darunter das undefinierte Label `param_checkplot` und fehlende Leerzeilen in `Using.rst` und `Output.rst`.
 
 ## 5. Nachtrag: Branch `install-fix` – stabiles `./configure` ohne Optionen
@@ -157,15 +157,16 @@ Siehe Abschnitt 6.
 **Noch offen:** `make check` außerhalb des Quellverzeichnisses (VPATH) schlägt fehl. Die Tests
 suchen ihre Daten relativ zum Arbeitsverzeichnis. Das Problem bestand schon vorher und hängt
 nicht mit der BLAS-Wahl zusammen.
+
 ## 6. macOS (Branch `mac-compile`)
 
 ### Geänderte Dateien
 
 | Commit | Änderung |
 |---|---|
-| `d965fb9` | **Build-System:** FFTW holt Include- und Bibliothekspfade über pkg-config (`fftw3f`/`fftw3`), wenn keine Pfade angegeben sind. Unter Linux liefert pkg-config für Systempfade nichts, dort ändert sich also nichts. Behoben: falsches Quoting von `FFTW_H` bei `--with-fftw-libdir`. **OpenBLAS:** Das „keg-only“-OpenBLAS von Homebrew wird über `PKG_CONFIG_PATH` gefunden; den Bibliothekspfad aus pkg-config nutzt das Makro nur als letzten Ausweg. Mit der automatischen Bibliothekswahl aus Abschnitt 5 weicht ein `./configure` ohne Optionen auf dem Mac damit auf das OpenBLAS von Homebrew aus, weil ATLAS fehlt. **cURL:** pkg-config wird vor `curl-config` gefragt. |
-| `aa2d75b` | `chealpixstore.c`: `int64_t` statt `long` beim `realloc` und `PRId64` beim Ausgeben. Auf macOS ist `int64_t` `long long`. |
-| `0a6c25a` | **Tests:** `test_chealpixstore` linkt `libfits.a`, das `error()` bereitstellt. Unter Linux wurde nur zufällig die gleichnamige, aber andere glibc-Funktion `error()` verwendet. `test_chealpix` liest `int64_t` mit `SCNd64`. Die Crossid-Tests vergleichen mit `fabs()` statt `abs()`. `abs()` schnitt die Differenzen auf ganze Zahlen ab, die Prüfung war daher wirkungslos (auch unter Linux). Der Moving-Test verschiebt die Felder absichtlich um bis zu 0,3″ und prüft jetzt mit 0,5″ Toleranz statt `FLT_EPSILON`. |
+| `c3ca0bf` | **Build-System:** FFTW holt Include- und Bibliothekspfade über pkg-config (`fftw3f`/`fftw3`), wenn keine Pfade angegeben sind. Unter Linux liefert pkg-config für Systempfade nichts, dort ändert sich also nichts. Behoben: falsches Quoting von `FFTW_H` bei `--with-fftw-libdir`. **OpenBLAS:** Das „keg-only“-OpenBLAS von Homebrew wird über `PKG_CONFIG_PATH` gefunden; den Bibliothekspfad aus pkg-config nutzt das Makro nur als letzten Ausweg. Mit der automatischen Bibliothekswahl aus Abschnitt 5 weicht ein `./configure` ohne Optionen auf dem Mac damit auf das OpenBLAS von Homebrew aus, weil ATLAS fehlt. **cURL:** pkg-config wird vor `curl-config` gefragt. |
+| `b4409f7` | `chealpixstore.c`: `int64_t` statt `long` beim `realloc` und `PRId64` beim Ausgeben. Auf macOS ist `int64_t` `long long`. |
+| `4e1dcb5` | **Tests:** `test_chealpixstore` linkt `libfits.a`, das `error()` bereitstellt. Unter Linux wurde nur zufällig die gleichnamige, aber andere glibc-Funktion `error()` verwendet. `test_chealpix` liest `int64_t` mit `SCNd64`. Die Crossid-Tests vergleichen mit `fabs()` statt `abs()`. `abs()` schnitt die Differenzen auf ganze Zahlen ab, die Prüfung war daher wirkungslos (auch unter Linux). Der Moving-Test verschiebt die Felder absichtlich um bis zu 0,3″ und prüft jetzt mit 0,5″ Toleranz statt `FLT_EPSILON`. |
 
 ### Getestet
 
@@ -211,7 +212,7 @@ Es sind keine Optionen nötig. Mit `--disable-plplot` lässt sich PLplot weglass
 - Nach den Änderungen am Build-System muss noch einmal unter Linux (Ubuntu) `make check` laufen, bevor `mac-compile` nach `master` geht.
 - Die VizieR-Abfragen scheitern auch auf dem Mac (`Connection timeout for vizier.unistra.fr`), siehe Abschnitt 4.
 
-## 6. Analyse mit maximalen Compiler-Warnstufen (Branch `mac-compile`)
+## 7. Analyse mit maximalen Compiler-Warnstufen (Branch `mac-compile`)
 
 ### Vorgehen
 
@@ -234,14 +235,14 @@ Drei Builds wurden ausgewertet:
 
 | Commit | Stelle | Problem |
 |---|---|---|
-| `a9f968d` | `samples.c` | **Echter Fehler:** Ist `SPREAD_MODEL` oder `SPREADERR_MODEL` im Katalog vom Typ `double`, blieb der `float`-Zeiger uninitialisiert, wurde aber zuerst geprüft und dereferenziert. Folge: Müllwerte oder Absturz. |
-| `ef0cbcc` | `cplot.c:129` | **Pufferüberlauf:** Der `convert`-Befehl für die Kantenglättung (Dateiname zweimal) wurde in einen 512-Byte-Puffer geschrieben. Jetzt `snprintf`, Dateinamen in Anführungszeichen und eine Warnung, wenn der Befehl zu lang ist. |
-| `ef0cbcc` | `makeit.c:209` | **Pufferüberlauf:** `OUTREF_PATH` plus Katalogname. Jetzt `snprintf` und eine Fehlermeldung, wenn der Name zu lang ist. |
-| `ef0cbcc` | `fitswcs.c:388` | Ein `CUNIT` ab 32 Zeichen wurde ohne Endnull kopiert. |
-| `4deef35` | `fft.c:304` | Undefiniertes Verhalten durch einen XOR-Tausch (gleiches Muster wie früher in `match.c`). |
-| `4deef35` | `astrsolve.c:1634` | Undefiniertes Verhalten durch `x[i] = x[i] = BIG;`. |
-| `4deef35` | `astrsolve.c:251/258`, `astrcplot.c:4965/5230` | Zugriff über eine Schleifenvariable, die nur zufällig den richtigen Wert hat. |
-| `4deef35` | `catout.c:271` | Irreführende Einrückung. |
+| `989f98f` | `samples.c` | **Echter Fehler:** Ist `SPREAD_MODEL` oder `SPREADERR_MODEL` im Katalog vom Typ `double`, blieb der `float`-Zeiger uninitialisiert, wurde aber zuerst geprüft und dereferenziert. Folge: Müllwerte oder Absturz. |
+| `49d0fd4` | `cplot.c:129` | **Pufferüberlauf:** Der `convert`-Befehl für die Kantenglättung (Dateiname zweimal) wurde in einen 512-Byte-Puffer geschrieben. Jetzt `snprintf`, Dateinamen in Anführungszeichen und eine Warnung, wenn der Befehl zu lang ist. |
+| `49d0fd4` | `makeit.c:209` | **Pufferüberlauf:** `OUTREF_PATH` plus Katalogname. Jetzt `snprintf` und eine Fehlermeldung, wenn der Name zu lang ist. |
+| `49d0fd4` | `fitswcs.c:388` | Ein `CUNIT` ab 32 Zeichen wurde ohne Endnull kopiert. |
+| `07b4e4b` | `fft.c:304` | Undefiniertes Verhalten durch einen XOR-Tausch (gleiches Muster wie früher in `match.c`). |
+| `07b4e4b` | `astrsolve.c:1634` | Undefiniertes Verhalten durch `x[i] = x[i] = BIG;`. |
+| `07b4e4b` | `astrsolve.c:251/258`, `astrcplot.c:4965/5230` | Zugriff über eine Schleifenvariable, die nur zufällig den richtigen Wert hat. |
+| `07b4e4b` | `catout.c:271` | Irreführende Einrückung. |
 
 ### Geprüft, aber unkritisch
 
