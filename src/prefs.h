@@ -206,7 +206,7 @@ typedef struct
   int		colourshiftcorr_flag;		/* Correct colour shifts?*/
 
 /* Check-plots */
-  cplotenum	cplot_device[MAXCHECK];		/* check-plot format */
+  cplotdevenum	cplot_device[MAXCHECK];		/* check-plot format */
   int		ncplot_device;			/* nb of params */
   cplotenum	cplot_type[MAXCHECK];		/* check-plot types */
   int		ncplot_type;			/* nb of params */

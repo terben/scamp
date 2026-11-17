@@ -452,7 +452,7 @@ void	print_obj(FILE *stream, tabstruct *tab)
               fprintf(stream, "F");
             }
           else
-            fprintf(stream, key->printf?key->printf:"%d", (int)*ptr);
+            fprintf(stream, *key->printf?key->printf:"%d", (int)*ptr);
           if (i)
             putc(' ', stream);
           break;
@@ -538,7 +538,7 @@ void	voprint_obj(FILE *stream, tabstruct *tab)
               fprintf(stream, "F");
             }
           else
-            fprintf(stream, key->printf?key->printf:"%d", (int)*ptr);
+            fprintf(stream, *key->printf?key->printf:"%d", (int)*ptr);
           if (i)
             putc(' ', stream);
           break;

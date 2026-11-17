@@ -529,8 +529,8 @@ int	remove_tab(catstruct *cat, char *tabname, int seg)
 /*--update status for each table segment*/
     {
     for (tab=prevtab;!tab->nseg; tab = tab->prevtab);
-    for (nexttab=tab->nexttab,i=2;!nexttab->nseg;nexttab=nexttab->nexttab,i++);
-      nexttab->seg = i;
+    for (nexttab=tab->nexttab,i=1;!nexttab->nseg;nexttab=nexttab->nexttab)
+      nexttab->seg = ++i;
     tab->nseg = i;
     tab->seg = 1;
     }

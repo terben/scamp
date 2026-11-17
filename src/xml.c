@@ -308,7 +308,7 @@ int	write_xml_meta(FILE *file, char *msgerror)
 #ifdef HAVE_PLPLOT
   nplot = pnplot = pngflag = 0;
   for (j=0; j<prefs.ncplot_device; j++)
-    if ((prefs.cplot_device[j] == CPLOT_PNG))
+    if (prefs.cplot_device[j] == CPLOT_PNG)
       {
       pngflag = 1;
       break;

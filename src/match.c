@@ -1003,7 +1003,7 @@ void putgauss(float *histo, int width, int height, double x, double y,
  ***/
 void flipimage(float *histo, int width, int height)
 {
-    unsigned int *point0, *pointl, *pointh;
+    unsigned int *point0, *pointl, *pointh, tmp;
     int  i, j, w2, step;
 
     w2 = width/2;
@@ -1014,7 +1014,11 @@ void flipimage(float *histo, int width, int height)
         pointl = point0;
         pointh = pointl+step;
         for (i=w2; i--; pointl++, pointh--)
-            *pointl ^= (*pointh^=(*pointl^=*pointh));
+        {
+            tmp = *pointl;
+            *pointl = *pointh;
+            *pointh = tmp;
+        }
     }
 
     return;
@@ -1123,8 +1127,8 @@ double findcrosspeak(float *histo, int width, int height,
         for (ix=0; ix<width; ix++)
             if ((val=histo[ix+iy*width]) > max)
             {
-                idx = fabs(ix-ixpeak);
-                idy = fabs(iy-iypeak);
+                idx = abs(ix-ixpeak);
+                idy = abs(iy-iypeak);
                 if (idx*idx + idy*idy > resol22
                         && (width-idx)*(width-idx) + (height-idy)*(height-idy) > resol22)
                     max = val;

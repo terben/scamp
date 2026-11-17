@@ -254,7 +254,7 @@ int	tree_knn(treestruct *tree, double *coords, int k, void **kleaf) {
   queue = pqueue_new();				// Initialize priority queue
   pqueue_insertelement(queue, tree->node, tree_distance(tree->node, index));
   kk = 0;
-  while (node = pqueue_pullelement(queue))  {	// Get closest node
+  while ((node = pqueue_pullelement(queue)))  {	// Get closest node
     if (node->leaf) {				// If the node is a leaf ...
       kleaf[kk++] = node->leaf;			// ... it is a closest neighbour
       if (kk == k)				// exit if kth closest neighbour
