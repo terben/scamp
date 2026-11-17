@@ -59,15 +59,18 @@ if test x$2 = x; then
 dnl Upstream layout, then the directory advertised by pkg-config (e.g.
 dnl .../openblas-pthread/ on Debian/Ubuntu), then the default path
   acx_openblas_pcdir=""
+  acx_openblas_pclibopt=""
   if pkg-config --exists openblas$acx_openblas_suffix 2>/dev/null; then
     acx_openblas_pcdir=`pkg-config --variable=includedir \
 	openblas$acx_openblas_suffix | sed 's|/*$|/|'`
+    acx_openblas_pclibopt=`pkg-config --libs-only-L openblas$acx_openblas_suffix`
   fi
   acx_openblas_dirs="openblas/ $acx_openblas_pcdir default"
   acx_openblas_where=""
 else
   acx_openblas_dirs="$2/ $2/include/"
   acx_openblas_where=" in $2"
+  acx_openblas_pclibopt=""
 fi
 
 dnl OpenBLAS's own cblas.h, recognized by its openblas_set_num_threads()
@@ -142,6 +145,18 @@ dnl library instead of bundling it with OpenBLAS
         ac_cv_search_LAPACKE_dpotrf="$ac_cv_search_LAPACKE_dpotrf -lopenblas$acx_openblas_suffix"
       ],,
       [$acx_openblas_libopt -lopenblas$acx_openblas_suffix]
+    )
+  fi
+dnl Last resort: the library directory advertised by pkg-config (e.g., for
+dnl Homebrew's "keg-only" OpenBLAS on macOS)
+  if test "x$OPENBLAS_ERROR" != "x" && test "x$acx_openblas_libopt" = x \
+	&& test "x$acx_openblas_pclibopt" != x; then
+    unset ac_cv_search_LAPACKE_dpotrf
+    acx_openblas_libopt="$acx_openblas_pclibopt"
+    AC_SEARCH_LIBS(
+      [LAPACKE_dpotrf], ["openblas"$acx_openblas_suffix],
+      [OPENBLAS_ERROR=""],,
+      [$acx_openblas_libopt]
     )
   fi
 dnl Thread control: whatever the library name, the number of threads can be

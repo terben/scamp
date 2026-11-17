@@ -40,6 +40,7 @@ AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_HEADERS(config.h)
 AM_INIT_AUTOMAKE
+AC_CANONICAL_HOST
 # Dates (in the C locale, as needed for package changelogs); the RFC 2822
 # format is spelled out because "date -R" is not supported by BSD/macOS date
 date=`date +%Y-%m-%d`
@@ -200,6 +201,14 @@ AC_ARG_ENABLE(openblas,
 if usable, otherwise OpenBLAS)])],
 	[], [enable_openblas="auto"])
 AC_MSG_RESULT([$enable_openblas])
+# Homebrew installs OpenBLAS "keg-only", out of pkg-config's default path
+AS_CASE([$host_os], [darwin*], [
+  acx_brew_prefix=`brew --prefix 2>/dev/null`
+  acx_brew_pcdir="$acx_brew_prefix/opt/openblas/lib/pkgconfig"
+  if test "x$acx_brew_prefix" != x && test -d "$acx_brew_pcdir"; then
+    PKG_CONFIG_PATH="${PKG_CONFIG_PATH:+$PKG_CONFIG_PATH:}$acx_brew_pcdir"
+    export PKG_CONFIG_PATH
+  fi])
 AC_ARG_WITH(openblas-libdir,
 	[AS_HELP_STRING([--with-openblas-libdir=<OpenBLAS library path>],
 	[Provide an alternative path to the OpenBLAS library])])
@@ -300,6 +309,7 @@ else
   ACX_FFTW($with_fftw_libdir, $with_fftw_incdir, $use_pthreads,yes,
     [
       [LIBS="$FFTW_LIBS $LIBS"]
+      [AM_CPPFLAGS="$AM_CPPFLAGS $FFTW_CFLAGS"]
       if test "$FFTW_WARN" != ""; then
         AC_MSG_WARN([$FFTW_WARN])
       fi

@@ -48,8 +48,20 @@ OLIBS="$LIBS"
 LIBS=""
 acx_curl_ok=yes
 if test x$2 = x && test x$1 = x; then
-  AC_CHECK_PROG(acx_curlconfig_ok, [curl-config], [yes], [no])
-  if test x$acx_curlconfig_ok = xyes; then
+dnl pkg-config first: a curl-config found earlier in the PATH may belong to
+dnl another installation (e.g. Anaconda), whose library is not found at run time
+  AC_MSG_CHECKING([for cURL pkg-config info])
+  if pkg-config --exists libcurl 2>/dev/null; then
+    AC_MSG_RESULT([yes])
+    acx_curlconfig_ok=yes
+    [CURL_CFLAGS=`pkg-config --cflags libcurl`]
+    [CURL_LIBS=`pkg-config --libs libcurl`]
+    AC_DEFINE(CURL_H, "curl/curl.h", [cURL header filename.])
+  else
+    AC_MSG_RESULT([no])
+    AC_CHECK_PROG(acx_curlconfig_ok, [curl-config], [yes], [no])
+  fi
+  if test x$acx_curlconfig_ok = xyes && test "x$CURL_LIBS" = x; then
     [CURL_CFLAGS=`curl-config --cflags`]
     [CURL_LIBS=`curl-config --libs`]
     AC_DEFINE(CURL_H, "curl/curl.h", [cURL header filename.])

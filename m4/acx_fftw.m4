@@ -34,6 +34,10 @@ dnl files are installed.
 dnl You may wish to use these variables in your default LIBS and CFLAGS:
 dnl
 dnl        LIBS="$FFTW_LIBS $LIBS"
+dnl        AM_CPPFLAGS="$AM_CPPFLAGS $FFTW_CFLAGS"
+dnl
+dnl Without FFTW_DIR and FFTW_INCDIR, non-standard locations are taken from
+dnl pkg-config (fftw3f or fftw3) when available.
 dnl
 dnl ACTION-IF-FOUND is a list of shell commands to run if FFTW
 dnl is found (HAVE_FFTWx are defined first), and ACTION-IF-NOT-FOUND
@@ -47,8 +51,25 @@ dnl Search include files
 dnl --------------------
 
 acx_fftw_ok=no
+FFTW_CFLAGS=""
+acx_fftw_libopt=""
+acx_fftw_ocppflags="$CPPFLAGS"
+acx_fftw_oldflags="$LDFLAGS"
 if test x$2 = x; then
   if test x$1 = x; then
+dnl Let pkg-config point to non-standard locations (e.g., Homebrew on macOS);
+dnl it reports nothing for the compiler's default search paths
+    if test x$4 = xyes; then
+      acx_fftw_pkg="fftw3f"
+    else
+      acx_fftw_pkg="fftw3"
+    fi
+    if pkg-config --exists $acx_fftw_pkg 2>/dev/null; then
+      FFTW_CFLAGS=`pkg-config --cflags-only-I $acx_fftw_pkg`
+      acx_fftw_libopt=`pkg-config --libs-only-L $acx_fftw_pkg`
+    fi
+    CPPFLAGS="$CPPFLAGS $FFTW_CFLAGS"
+    LDFLAGS="$LDFLAGS $acx_fftw_libopt"
     AC_CHECK_HEADER(fftw3.h,[acx_fftw_ok=yes])
     if test x$acx_fftw_ok = xyes; then
       AC_DEFINE(FFTW_H, "fftw3.h", [FFTW header filename.])
@@ -63,7 +84,7 @@ if test x$2 = x; then
   else
     AC_CHECK_HEADER($1/include/fftw3.h,[acx_fftw_ok=yes])
     if test x$acx_fftw_ok = xyes; then
-      AC_DEFINE(FFTW_H, $1"/include/fftw3.h, [FFTW header filename.])
+      AC_DEFINE_UNQUOTED(FFTW_H, "$1/include/fftw3.h", [FFTW header filename.])
     else
       AC_CHECK_HEADER(fftw3.h,[acx_fftw_ok=yes])
       if test x$acx_fftw_ok = xyes; then
@@ -194,7 +215,13 @@ dnl -------------------------
 fi
 
 LIBS="$OLIBS"
+CPPFLAGS="$acx_fftw_ocppflags"
+LDFLAGS="$acx_fftw_oldflags"
+if test "x$acx_fftw_libopt" != x; then
+  FFTW_LIBS="$acx_fftw_libopt $FFTW_LIBS"
+fi
 if test x$acx_fftw_ok = xyes; then
+  AC_SUBST(FFTW_CFLAGS)
   AC_SUBST(FFTW_LIBS)
   $5
 else
