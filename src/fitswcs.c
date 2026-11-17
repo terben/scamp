@@ -887,7 +887,6 @@ VERSION	20/11/2012
 void	invert_wcs(wcsstruct *wcs)
 
   {
-   polystruct		*poly;
    double		pixin[NAXIS],raw[NAXIS],rawmin[NAXIS];
    double		*outpos,*outpost, *lngpos,*lngpost,
 			*latpos,*latpost,
@@ -956,7 +955,6 @@ void	invert_wcs(wcsstruct *wcs)
 		wcs->wcsprm->pcode);
   epsilon = WCS_INVACCURACY/rawsize;
 /* Find the lowest degree polynom */
-  poly = NULL;  /* to avoid gcc -Wall warnings */
 /*
   maxflag = 1;
   for (deg=1; deg<=WCS_INVMAXDEG && maxflag; deg++)

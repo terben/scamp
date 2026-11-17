@@ -71,13 +71,12 @@ msamplestruct	*merge_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
     weight,weights, dummy;
     unsigned short		sexflagmask;
     unsigned int		imaflagmask;
-    int			d,f,n,p,s, nall,nposok, npinstru, naxis,
+    int			d,f,n,p,s, nall,nposok, naxis,
                 nmsample, index, refflag;
 
     sexflagmask = prefs.astr_sexflagsmask;
     imaflagmask = prefs.astr_imaflagsmask;
     naxis = fgroup->naxis;
-    npinstru = prefs.nphotinstrustr;
     refflag = prefs.astrefinprop_flag;
 
     /* Clear any existing msample array */

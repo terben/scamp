@@ -91,8 +91,7 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
    unsigned short	sexflagmask;
    unsigned int		imaflagmask;
    int			nmag[MAXPHOTINSTRU],
-			d,i,k,m,n,p,nphotok, npinstru, naxis,
-			index, refflag;
+			d,i,k,m,n,p,nphotok, npinstru, naxis;
 
   if (prefs.mergedcat_type == CAT_NONE)
     return;
@@ -101,7 +100,6 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
   imaflagmask = prefs.phot_imaflagsmask;
   naxis = fgroup->naxis;
   refmergedsample.nband = npinstru = prefs.nphotinstrustr;
-  refflag = prefs.astrefinprop_flag;
 
 /* LDAC Object header */
   objtab = new_tab("LDAC_OBJECTS");
@@ -219,7 +217,6 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
     init_writeobj(cat, objtab, &buf);
     }
 
-  index=0;
   msamp = fgroup->msample;
   for (m=fgroup->nmsample; m--; msamp++)
     {

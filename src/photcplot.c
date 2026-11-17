@@ -72,7 +72,7 @@ int	cplot_photom(fgroupstruct **fgroups, int ngroup,
    setstruct	*refset;
    samplestruct	*refsamp, *samp;
    PLFLT	*x,*y;
-   int		g,n, npoint, nrefsamp, ngw,ngh, lng,lat;
+   int		g,n, npoint, nrefsamp;
 
   if (cplot_init(1,1, CPLOT_PHOTOM) == RETURN_ERROR)
     {
@@ -80,13 +80,9 @@ int	cplot_photom(fgroupstruct **fgroups, int ngroup,
     return RETURN_OK;
     }
   x = y = NULL;		/* to avoid gcc -Wall warnings */
-  ngw = (int)(sqrt(ngroup)+0.49);
-  ngh = (int)(ngroup/ngw+0.49);
   for (g=0; g<ngroup; g++)
     {
     refset = reffields[g]->set[0];
-    lng = refset->lng;
-    lat = refset->lat;
     refsamp = refset->sample;
     nrefsamp = refset->nsample;
     if (nrefsamp)
@@ -567,7 +563,7 @@ int	cplot_photerrhistomag(fgroupstruct *fgroup, fieldstruct *reffield,
    unsigned short sexflagmask;
    unsigned int	imaflagmask;
    int		f,i, s,n,
-		nsamp, firstflag, instru, ninstru, npinstru,
+		nsamp, instru, ninstru, npinstru,
 		ix,iy, nx,ny;
 
   sexflagmask = prefs.phot_sexflagsmask;
@@ -736,7 +732,6 @@ int	cplot_photerrhistomag(fgroupstruct *fgroup, fieldstruct *reffield,
     lwid = plotaaflag? ((CPLOT_AAFAC+1)/2) : 1;
     for (i=0; i<CPLOT_NADERRHISTBIN; i++)
       cutbin[i] = boffset+(i+0.5)/bscale;
-    firstflag = 1;
     yl[0] = yl[1] = 0.0;
     plschr(0.0,0.5);
     maxwidth = magmax-xoffset;
@@ -835,9 +830,9 @@ int	cplot_photzp3d(fgroupstruct *fgroup)
 		dx,dy,dz, lim, xmin,xmax, ymin,ymax, zmin,zmax, col;
    PLINT	lwid;
    double	rawpos[NAXIS],rawpos2[NAXIS], wcspos[NAXIS],wcspos2[NAXIS],
-		raw,rawmax, dd,ddmax;
+		raw,rawmax;
    char		str[80];
-   int		f,i,imax,s,stxt, npointmax,
+   int		f,i,s,stxt, npointmax,
 		instru, ninstru, npinstru, nx,ny, nset, lng,lat;
 
   ninstru = prefs.nphotinstrustr;
@@ -1013,23 +1008,6 @@ int	cplot_photzp3d(fgroupstruct *fgroup)
         plcol0(15);
       plline3(5, focplanet->x, focplanet->y, focplanet->z); 
       CPLOT_PLWID(lwid);
-/*---- Find the point with highest projpos[lng] and lowest projpos[lat] */
-      if (focplanet->str)
-        {
-        ddmax = -BIG;
-        imax = 0;
-        for (i=0; i<5; i++)
-          if ((dd = focplanet->x[i]-focplanet->y[i])> ddmax)
-            {
-            ddmax = dd;
-            imax = i;
-            }
-/* 
-       x1=plP_w3wcx(focplanet->x[imax],focplanet->y[imax],focplanet->z[imax]);
-        y1=plP_w3wcy(focplanet->x[imax],focplanet->y[imax],focplanet->z[imax]);
-        plptex(x1, y1-0.02, 1.0, -0.26, 1.1, focplanet->str);
-*/
-        }
       plcol0(15);
       }
     xl[0] = xmin;

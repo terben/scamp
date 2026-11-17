@@ -584,11 +584,7 @@ void end_field(fieldstruct *field) {
 void print_fieldinfo(fieldstruct *field)
 
 {
-    tabstruct  *imatab;
-    setstruct  *set;
 
-    set = field->set[0];
-    imatab = set->imatab;
     QPRINTF(OUTPUT, "%s:  \"%-19.19s\"  %s %3d set%s %7d detection%s\n",
             field->rfilename, field->ident,
             field->headflag? "EXTERN. HEADER" : "no ext. header",
@@ -690,10 +686,9 @@ double   dhmedian(double *ra, int n)
  ***/
 void    *pthread_load_field(void *arg)
 {
-   int findex, proc;
+   int findex;
 
     findex = -1;
-    proc = *((int *)arg);
     threads_gate_sync(pthread_startgate);
     while (!pthread_field_endflag) {
         QPTHREAD_MUTEX_LOCK(&field_readmutex);

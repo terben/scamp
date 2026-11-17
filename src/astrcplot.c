@@ -3126,8 +3126,7 @@ int	cplot_pixerrhisto1d(fgroupstruct **fgroups, int ngroup, int instru,
    wcsstruct	*wcs;
    setstruct	*set;
    samplestruct	*samp, *samp2;
-   double	rawpos[NAXIS],rawpos2[NAXIS], wcspos[NAXIS],wcspos2[NAXIS],
-		pixscale[NAXIS], xscale[NAXIS],xscale_hsn[NAXIS],
+   double	rawpos[NAXIS], wcspos[NAXIS], xscale[NAXIS],xscale_hsn[NAXIS],
 		xoffset[NAXIS],xoffset_hsn[NAXIS], mean[NAXIS],
 		yscale,yscale_hsn, yoffset,yoffset_hsn, boffset,bscale, dy,
 		margin, sig2;
@@ -3224,16 +3223,6 @@ int	cplot_pixerrhisto1d(fgroupstruct **fgroups, int ngroup, int instru,
     wcs = fgroup->wcs;
     if (!wcs)
       return RETURN_ERROR;
-    for (d=0; d<naxis; d++)
-      rawpos2[d] = rawpos[d] = wcs->naxisn[d]/2.0;
-    raw_to_wcs(wcs, rawpos, wcspos);
-    for (d=0; d<naxis; d++)
-      {
-      rawpos2[d] += 1.0;
-      raw_to_wcs(wcs, rawpos2, wcspos2);
-      pixscale[d] = wcs_dist(wcs, wcspos, wcspos2)*DEG/ARCSEC;	/* in arcsec */
-      rawpos2[d] -= 1.0;
-      }
     for (f=0; f<fgroup->nfield; f++)
       {
       field = fgroup->field[f];
@@ -3493,8 +3482,7 @@ int	cplot_subpixerrhisto1d(fgroupstruct **fgroups, int ngroup, int instru,
    wcsstruct	*wcs;
    setstruct	*set;
    samplestruct	*samp, *samp2;
-   double	rawpos[NAXIS],rawpos2[NAXIS], wcspos[NAXIS],wcspos2[NAXIS],
-		pixscale[NAXIS], xscale[NAXIS],xscale_hsn[NAXIS],
+   double	rawpos[NAXIS], wcspos[NAXIS], xscale[NAXIS],xscale_hsn[NAXIS],
 		xoffset[NAXIS],xoffset_hsn[NAXIS], mean[NAXIS],
 		yscale,yscale_hsn, yoffset,yoffset_hsn, boffset,bscale, dy,
 		maxwidth,margin, sig2;
@@ -3571,16 +3559,6 @@ int	cplot_subpixerrhisto1d(fgroupstruct **fgroups, int ngroup, int instru,
     wcs = fgroup->wcs;
     if (!wcs)
       return RETURN_ERROR;
-    for (d=0; d<naxis; d++)
-      rawpos2[d] = rawpos[d] = wcs->naxisn[d]/2.0;
-    raw_to_wcs(wcs, rawpos, wcspos);
-    for (d=0; d<naxis; d++)
-      {
-      rawpos2[d] += 1.0;
-      raw_to_wcs(wcs, rawpos2, wcspos2);
-      pixscale[d] = wcs_dist(wcs, wcspos, wcspos2)*DEG/ARCSEC;	/* in arcsec */
-      rawpos2[d] -= 1.0;
-      }
     for (f=0; f<fgroup->nfield; f++)
       {
       field = fgroup->field[f];
@@ -4197,7 +4175,7 @@ int	cplot_astrefprop(fgroupstruct *fgroup, fieldstruct *reffield,
    msamplestruct	*msamp;
    samplestruct	*samp, *samp2;
    char		str[80];
-   double	offset,offset_hsn, scale,scale_hsn, boffset,bscale, err;
+   double	offset,offset_hsn, scale,scale_hsn;
    PLFLT	**histo[2],**histo_hsn[2],
 		xl[5], yl[5],r[2],g[2],b[2],cpoint[2],zmax[2],zmax_hsn[2],
 		*clevel,
@@ -4238,9 +4216,6 @@ int	cplot_astrefprop(fgroupstruct *fgroup, fieldstruct *reffield,
   scale = CPLOT_REFERR2DN / (2.0*maxlim);
   scale_hsn = CPLOT_REFERR2DN_HSN / (2.0*maxlim);
 
-  boffset = -maxlim;
-  bscale = CPLOT_NREFERRHISTBIN / (2.0*maxlim);
-
   QMALLOC(clevel, PLFLT, CPLOT_NSHADES);
 
   plscmap1n(256);
@@ -4261,9 +4236,9 @@ int	cplot_astrefprop(fgroupstruct *fgroup, fieldstruct *reffield,
         {
         msamp = samp2->msamp;
 /*------ Do not plot objects with bad S/N on proper motions */
+/*
         err = msamp->wcsproperr[lng]*msamp->wcsproperr[lng]
 		+ msamp->wcsproperr[lat]*msamp->wcsproperr[lat];
-/*
         if (err == 0.0 || (msamp->wcsprop[0]*msamp->wcsprop[0]
 		+ msamp->wcsprop[1]*msamp->wcsprop[1])/err
 		< CPLOT_ASTREFPROPMINSN*CPLOT_ASTREFPROPMINSN)
@@ -4412,9 +4387,9 @@ int	cplot_astrepoch3d(fgroupstruct *fgroup)
 		dx,dy,dz, lim, xmin,xmax, ymin,ymax, zmin,zmax, col;
    PLINT	lwid;
    double	rawpos[NAXIS],rawpos2[NAXIS], wcspos[NAXIS],wcspos2[NAXIS],
-		raw,rawmax, dd,ddmax;
+		raw,rawmax;
    char		str[80];
-   int		f,i,imax,s,stxt, npointmax,
+   int		f,i,s,stxt, npointmax,
 		nx,ny, nset, lng,lat;
 
   nx = ny = 1;
@@ -4573,23 +4548,6 @@ int	cplot_astrepoch3d(fgroupstruct *fgroup)
       plcol0(15);
     plline3(5, focplanet->x, focplanet->y, focplanet->z); 
     CPLOT_PLWID(lwid);
-/*-- Find the point with highest projpos[lng] and lowest projpos[lat] */
-    if (focplanet->str)
-      {
-      ddmax = -BIG;
-      imax = 0;
-      for (i=0; i<5; i++)
-        if ((dd = focplanet->x[i]-focplanet->y[i])> ddmax)
-          {
-          ddmax = dd;
-          imax = i;
-          }
-/*
-      x1=plP_w3wcx(focplanet->x[imax],focplanet->y[imax],focplanet->z[imax]);
-      y1=plP_w3wcy(focplanet->x[imax],focplanet->y[imax],focplanet->z[imax]);
-      plptex(x1, y1-0.02, 1.0, -0.26, 1.1, focplanet->str);
-*/
-      }
     plcol0(15);
     }
   xl[0] = xmin;

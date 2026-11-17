@@ -87,7 +87,6 @@ void	astrcolshift_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
    setstruct	*set;
    samplestruct	*samp,*samp2;
    double	*ss[NAXIS],*sx[NAXIS],*sxx[NAXIS],*sy[NAXIS],*sxy[NAXIS],
-		sigma[NAXIS],
 		sig, a,b, wi,xi,yi, delta;
    unsigned short sexflagmask;
    unsigned int	imaflagmask;
@@ -140,12 +139,6 @@ void	astrcolshift_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
       samp = set->sample;
       for (n=set->nsample; n--; samp++)
         {
-        for (d=0; d<naxis; d++)
-          {
-/*-------- Another simplistic treatment of position uncertainties */
-          sig = samp->wcsposerr[d];
-          sigma[d] = sig*sig;
-          }
         xi = samp->msamp ? samp->msamp->colour : 0.0;
 /*------ Explore the forward direction */
         for (samp2=samp; (samp2=samp2->nextsamp);)
@@ -261,14 +254,12 @@ void	astrprop_fgroup(fgroupstruct *fgroup)
 		wis, paral,paralerr, chi2,chi2min, propmod,propmodmin;
    unsigned short sexflagmask;
    unsigned int	imaflagmask;
-   int		d,f,m, naxis, nfield,nsamp2, lng,lat, celflag,
-		propflag, paralflag, refflag, ncoeff,ncoeffp1,
+   int		d,f,m, naxis, nfield,nsamp2, lng,lat, celflag, paralflag, refflag, ncoeff,ncoeffp1,
 		nfree, nbad,nbadmax, nfreemin, npropmean;
 
   sexflagmask = prefs.astr_sexflagsmask;
   imaflagmask = prefs.astr_imaflagsmask;
   paralflag = prefs.parallax_flag;
-  propflag = prefs.propmotion_flag;
   refflag = prefs.astrefinprop_flag;
   naxis = fgroup->naxis;
   nfield = fgroup->nfield;
@@ -456,8 +447,8 @@ static int	astrprop_solve(fgroupstruct *fgroup, samplestruct *samp,
 			wcsstruct *wcsec, double *alpha, double *beta,
 			double wis, double *chi2)
   {
-   fieldstruct	*field, *field1,*field2;
-   setstruct	*set, *set1;
+   fieldstruct	*field1,*field2;
+   setstruct	*set1;
    samplestruct	*samp1,*samp2;
    wcsstruct	*wcs;
    double 	mpos[NAXIS], mposw[NAXIS],  projpos[NAXIS],
@@ -491,8 +482,6 @@ static int	astrprop_solve(fgroupstruct *fgroup, samplestruct *samp,
   sy2 = 0.0;
   nfree = -ncoeff;
 
-  set = samp->set;
-  field = set->field;
 
   for (samp1=samp; samp1; samp1 = samp1->prevsamp)
     {

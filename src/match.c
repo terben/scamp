@@ -111,12 +111,10 @@ void match_field(fieldstruct *field, fieldstruct *reffield)
 {
     setstruct *refset, *refset2, *set, *fieldset;
     char  str[MAXCHAR];
-    double wcspos[NAXIS],
-    angle,scale,dlng,dlat, dx,dy, dx2,dy2, sig,sig2, asig,
+    double angle,scale,dlng,dlat, dx,dy, dx2,dy2, sig,sig2, asig,
     dangle,dscale, ddlng,ddlat, shear,sangle, sheartot, sangletot,
     matchresol, refarea,area, refcrossec,crossec;
-    int  i,k, lng,lat,
-         naxis, nmax;
+    int  i, lng,lat, nmax;
 
     sprintf(str, "Matching field %.*s ...", MAXCHAR - 20, field->rfilename);
     NFPRINTF(OUTPUT, str);
@@ -124,13 +122,8 @@ void match_field(fieldstruct *field, fieldstruct *reffield)
     /* We are going to use FFT routines */
     /* fft_init(); Moved to makeit() */
 
-    naxis = field->naxis;
     lng = field->lng;
     lat = field->lat;
-
-    /* Prepare the WCS buffer by setting all elements to average values */
-    for (k=0; k<naxis; k++)
-        wcspos[k] = field->meanwcspos[k];
 
     refset = reffield->set[0];
 
@@ -454,11 +447,9 @@ double match_findas(setstruct *set, setstruct *refset, int nmax,
     dxerrj,derrj2,dxerrk,dyerrk;
     float *histo, *histo2, *rhisto;
     int  csize[NAXIS],
-    i,j,k,n, nrefsample,nsample,npair, lng,lat,
-    naxis, cnaxis, cnpix, checknum, ival;
+    i,j,k,n, nrefsample,nsample,npair, lng,lat, cnaxis, cnpix, checknum, ival;
 
     histo2 = NULL; /* to avoid gcc -Wall warnings */
-    naxis = set->naxis;
     lng = set->lng;
     lat = set->lat;
     rfilename = set->field->rfilename;
@@ -711,10 +702,8 @@ double match_findxy(setstruct *set, setstruct *refset,
     flux, poserr;
     float *histo, *rhisto;
     int  csize[NAXIS],
-    i,n, nrefsample, nsample, lng,lat,
-    naxis, cnaxis, cnpix, checknum, ival;
+    i,n, nrefsample, nsample, lng,lat, cnaxis, cnpix, checknum, ival;
 
-    naxis = set->naxis;
     lng = set->lng;
     lat = set->lat;
     rfilename = set->field->rfilename;
@@ -1429,10 +1418,8 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
      ***/
     void compute_rawpos(wcsstruct *wcs, samplestruct *refsample, int nrefsample)
     {
-        int  i, lng,lat;
+        int  i;
 
-        lng = wcs->lng;
-        lat = wcs->lat;
         for (i=nrefsample; i--; refsample++)
             wcs_to_raw(wcs, refsample->wcspos, refsample->rawpos);
 
@@ -1489,11 +1476,10 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
     {
         double a[4],b[4],
         *c,*at, *pv1, *pv2, *pvt1, *pvt2, cas, sas, fascale, sgn;
-        int  i,j, lng,lat,naxis, npv;
+        int  i,j, lng,lat, npv;
 
         lng = wcs->lng;
         lat = wcs->lat;
-        naxis = wcs->naxis;
 
         if (lng == lat)
             return;
@@ -1563,11 +1549,10 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
     {
         double a[4],b[4],
         *c,*at, cas, sas;
-        int  i,j, lng,lat,naxis;
+        int  i,j, lng,lat;
 
         lng = wcs->lng;
         lat = wcs->lat;
-        naxis = wcs->naxis;
 
         if (lng == lat)
             return;
@@ -1666,11 +1651,10 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
     void update_wcscc(wcsstruct *wcs, double dx, double dy)
     {
 
-        int  lng,lat, naxis;
+        int  lng,lat;
 
         lng = wcs->lng;
         lat = wcs->lat;
-        naxis = wcs->naxis;
 
         if (lng == lat)
             return;
@@ -1969,10 +1953,9 @@ void	dxy_to_dll(wcsstruct *wcs, double dx, double dy,
      ***/
     void    *pthread_match_field(void *arg)
     {
-        int findex, gindex, proc;
+        int findex, gindex;
 
         gindex = findex = -1;
-        proc = *((int *)arg);
         threads_gate_sync(pthread_startgate);
         while (!pthread_match_endflag)
         {

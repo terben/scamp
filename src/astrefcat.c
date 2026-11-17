@@ -274,7 +274,7 @@ fieldstruct	*get_astreffield(astrefenum refcat, double *wcspos,
 		alpha,delta, poserra,poserrb,poserrtheta, cpt,spt,
 		prop2, properr2, propfac;
    int		b,c,d,n,s,
-		nsample,nsamplemax, nobs, mode, qual, band, nband, cindex;
+		nsample,nsamplemax, mode, qual, band, nband, cindex;
 
 /* One needs 2 angular coordinates here! */
   if (naxis<2)
@@ -585,7 +585,7 @@ fieldstruct	*get_astreffield(astrefenum refcat, double *wcspos,
 
         case ASTREFCAT_URAT1:
 /*-------- Avoid poor observations */
-          nobs = atoi(cols[cindex++]);
+          cindex++;			/* skip nobs */
 //          if (nobs<2)
 //            continue;
           alpha = atof(cols[cindex++]);

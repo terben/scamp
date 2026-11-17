@@ -285,7 +285,7 @@ void	crval_to_crpix(wcsstruct *wcs, double *wcspos)
   {
    double	rawpos[NAXIS], a[NAXIS*NAXIS],b[NAXIS*NAXIS],
 		*c,*at,
-		val, cas, sas, angle, dlng,dlat;
+		val, cas, sas, angle, dlng;
    int		i,j,k, lng,lat, naxis;
 
   lng = wcs->lng;
@@ -298,7 +298,6 @@ void	crval_to_crpix(wcsstruct *wcs, double *wcspos)
     {
 /*-- Compute the angle difference towards the north pole induced by the shift*/
     dlng = wcspos[lng] - wcs->crval[lng];
-    dlat = wcspos[lat] - wcs->crval[lat];
     angle = (fabs(dlng)>1e-10) ?
 	(atan2(sin(wcspos[lat]*DEG)*cos(dlng*DEG)
 			- cos(wcspos[lat]*DEG)*tan(wcs->crval[lat]*DEG),
@@ -367,10 +366,9 @@ VERSION 12/08/2020
 void    *pthread_adjust_set(void *arg)
   {
    char	str[80];
-   int	sindex, proc;
+   int	sindex;
 
   sindex = -1;
-  proc = *((int *)arg);
   threads_gate_sync(pthread_startgate);
   while (!pthread_mosaic_endflag)
     {

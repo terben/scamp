@@ -133,7 +133,7 @@ void	astrsolve_fgroups(fgroupstruct **fgroups, int nfgroup) {
 		ninstru, instru, naxis, ncoeff, ncoeff2, ncoefftot,
 		npcoeff, npcoeff2,
 		d, index, index2,
-		ncontext, cx,cy, nicoeff, nicoeff2, groupdeg2,
+		ncontext, cx,cy, groupdeg2,
 		startindex2, nmiss;
 
 #if defined(HAVE_LAPACKE)
@@ -261,10 +261,8 @@ void	astrsolve_fgroups(fgroupstruct **fgroups, int nfgroup) {
     /* Compute the required number of coefficients */
     npcoeff = poly->ncoeff;
     ncoeff = npcoeff*naxis;
-    nicoeff = ncoeff*naxis;
     npcoeff2 = poly2->ncoeff;
     ncoeff2 = npcoeff2*naxis;
-    nicoeff2 = ncoeff2*naxis;
 
     ncoefftot = startindex2 = 0;
 
@@ -1020,11 +1018,10 @@ void    *pthread_fillastromatrix_thread(void *arg)
     polystruct	*poly,*poly2;
     char		str[128];
     int		group2[NAXIS],
-    findex, gindex, sindex, proc, naxis, groupdeg2,
+    findex, gindex, sindex, naxis, groupdeg2,
     d;
 
     gindex = findex = -1;
-    proc = *((int *)arg);
     naxis = pthread_fgroups[0]->naxis;
     for (d=0; d<naxis; d++)
         group2[d] = 1;

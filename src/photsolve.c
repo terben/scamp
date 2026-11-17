@@ -121,18 +121,18 @@ void	photsolve_fgroups(fgroupstruct **fgroups, int nfgroup)
    setstruct	*set,*set2,*set3;
    samplestruct	*samp,*samp2,*samp3;
    double	*alpha,*beta,*cv, *cvo,*cvoa,
-		*cv2,*cvo2,*cvoa2,
-		*cc,*cco,*ccoa, *cc2,*cco2,*ccoa2,
+		*cv2,
+		*cc,*cco,*ccoa, *cc2,
 		*coeffval,*coeffconst, *coeffval2,*coeffconst2, 
 		sigma2,sigma3, sigmaoverlap, sigmaref,
 		weight, weightref, mag;
    unsigned short sexflagmask;
    unsigned int	imaflagmask;
    int		*ci,*cio,*cioa,
-		*ci2,*cio2,*cioa2,
+		*ci2,
 		*coeffindex, *coeffindex2,
 		f,f0,g,s, nfield,ninstru,nifields,ntfields,
-		instru, naxis, ncoefftot, nlsamp,
+		instru, ncoefftot, nlsamp,
 		nsamp, nscoeffmax, nscoeffmax2,
 		nlsampmax, offlag, photcode, nsamp2, nsamp3;
 
@@ -140,7 +140,6 @@ void	photsolve_fgroups(fgroupstruct **fgroups, int nfgroup)
   sexflagmask = prefs.phot_sexflagsmask;
   imaflagmask = prefs.phot_imaflagsmask;
   alpha = beta = NULL;	/* To avoid gcc -Wall warnings*/
-  naxis = fgroups[0]->naxis;
   ninstru = prefs.nphotinstrustr;
   if (!ninstru)
     ninstru = 1;
@@ -283,11 +282,8 @@ void	photsolve_fgroups(fgroupstruct **fgroups, int nfgroup)
 			|| (samp2->imaflags & imaflagmask))
                     continue;
                   cio = ci;
-                  cio2 = ci2;
                   cvo = cv;
-                  cvo2 = cv2;
                   cco = cc;
-                  cco2 = cc2;
                   set2 = samp2->set;
                   field2 = set2->field;
 /*---------------- Pre-compute numbers that will be used in the beta matrix  */
@@ -317,9 +313,6 @@ void	photsolve_fgroups(fgroupstruct **fgroups, int nfgroup)
                   cvoa = coeffval;
                   cioa = coeffindex;
                   ccoa = coeffconst;
-                  cvoa2 = coeffval2;
-                  cioa2 = coeffindex2;
-                  ccoa2 = coeffconst2;
                   nsamp3 = nsamp2;
                   for (samp3 = samp; nsamp3--; samp3=samp3->prevsamp)
                     {

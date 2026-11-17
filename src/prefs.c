@@ -486,10 +486,10 @@ Update various structures according to the prefs.
 void	useprefs(void)
 
   {
-   char			str[80],
-			*pstr;
+   char			*pstr;
    int			i, flag;
 #ifdef USE_THREADS
+   char			str[80];
    int			nproc;
 #endif
 
