@@ -439,7 +439,7 @@ Stand: 17.11.2026. Ziel: Der Build mit `-Wall` soll ohne Warnungen durchlaufen, 
 
 | Vorher (gcc 11, `-Wall`) | Nachher |
 |---|---|
-| 234 Warnungen | 1 (`maxflag` in `invert_wcs()`, s. u.) |
+| 234 Warnungen | 0 (auch mit clang 14 und icx 2026.2) |
 
 ### Commits
 
@@ -453,9 +453,9 @@ Stand: 17.11.2026. Ziel: Der Build mit `-Wall` soll ohne Warnungen durchlaufen, 
 | `5774999` | „Möglicherweise uninitialisiert“: `lng`/`lat` für den Referenzkatalog in `astrsolve.c` aus dem richtigen Set. Einspaltige bzw. einzeilige Karten in `dgeomap.c` sind jetzt definiert. Sonst Zeiger-Initialisierungen bei Fehlalarmen. |
 | `3ab2acb` | Rückgabewert von `system()` beim Anti-Aliasing auswerten (Warnung bei Fehler), `QMEMCPY` auf ein lokales Array, fehlende Klammern in `preflist.h`. |
 | `4f0b923` | Von clang/icx und gcc `-O1` zusätzlich gemeldet: **Überlauf** beim Anhängen von `_<Gruppe>` an `MERGEDOUTCAT_NAME`, `FULLOUTCAT_NAME` und `DGEOMAP_NAME` bei sehr langen Namen; außerdem zwei Zähler, die nur hochgezählt werden. |
+| (nach `cb62947`) | `invert_wcs()` ist jetzt eine leere Funktion. Die polynomiale Inversion ist upstream auskommentiert; übrig war nur eine Gitter-Abtastung mit Genauigkeitstest, deren Ergebnis verworfen wurde (im Testlauf 10 Aufrufe). Die Ergebnisse sind unverändert. |
 
 ### Offen bzw. zu entscheiden
 
-- **`invert_wcs()` (`fitswcs.c`):** Die polynomiale Inversion ist upstream auskommentiert. Trotzdem tastet die Funktion bei jedem Aufruf (bei TNX bzw. PV-Projektionen) ein Gitter ab und prüft die Genauigkeit. Das Ergebnis (`maxflag`) wird nicht verwendet, die zugehörige Warnung ist auskommentiert. Das ist die letzte `-Wall`-Warnung. Optionen: die Warnung wieder einschalten, die tote Berechnung entfernen (spart Rechenzeit, größerer Eingriff in Upstream-Code) oder so lassen.
 - **Eigenbewegungskorrektur in `astrsolve.c:1661/1708`:** `properr2 = wcsprop²·wcschi2` verwendet die Eigenbewegung selbst statt ihres Fehlers (`wcsproperr`). Der Gewichtungsfaktor `prop²/(prop²+properr2)` wird so zu `1/(1+χ²)`, unabhängig von der gemessenen Unsicherheit. Das sieht nach einem Tippfehler aus (vgl. `astrefcat.c:925`, wo `properr` verwendet wird). Es ist aber eine fachliche Frage und wurde nicht geändert.
 - **`photsolve.c`:** Die Koeffizienten-Arrays `*2` (Offsets pro Set, `offlag`) werden gefüllt, aber nie in die Matrix übernommen. Offenbar ist das Feature unvollständig. Es wurden nur die toten Zuweisungen entfernt.
