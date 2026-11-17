@@ -4244,7 +4244,7 @@ int	cplot_astrefprop(fgroupstruct *fgroup, fieldstruct *reffield,
 		< CPLOT_ASTREFPROPMINSN*CPLOT_ASTREFPROPMINSN)
           continue;
 */
-        ix = (int)((msamp->wcsprop[lng]*DEG/MAS - offset)*scale);
+        ix = (int)((samp->wcsprop[lng]*DEG/MAS - offset)*scale);
         iy = (int)((msamp->wcsprop[lng]*DEG/MAS - offset)*scale);
         if (ix>=0 && ix<CPLOT_REFPROPN && iy>=0 && iy<CPLOT_REFPROPN)
           {
@@ -4254,7 +4254,7 @@ int	cplot_astrefprop(fgroupstruct *fgroup, fieldstruct *reffield,
           }
         if (samp2->flux >= hsn_thresh*samp2->fluxerr)
           {
-          ix = (int)((msamp->wcsprop[lng]*DEG/MAS - offset_hsn)*scale_hsn);
+          ix = (int)((samp->wcsprop[lng]*DEG/MAS - offset_hsn)*scale_hsn);
           iy = (int)((msamp->wcsprop[lng]*DEG/MAS - offset_hsn)*scale_hsn);
           if (ix>=0 && ix<CPLOT_REFPROPN_HSN
 		&& iy>=0 && iy<CPLOT_REFPROPN_HSN)
@@ -4264,7 +4264,7 @@ int	cplot_astrefprop(fgroupstruct *fgroup, fieldstruct *reffield,
               zmax_hsn[0] = z;
             }
           }
-        ix = (int)((msamp->wcsprop[lat]*DEG/MAS - offset)*scale);
+        ix = (int)((samp->wcsprop[lat]*DEG/MAS - offset)*scale);
         iy = (int)((msamp->wcsprop[lat]*DEG/MAS - offset)*scale);
         if (ix>=0 && ix<CPLOT_REFPROPN && iy>=0 && iy<CPLOT_REFPROPN)
           {
@@ -4274,7 +4274,7 @@ int	cplot_astrefprop(fgroupstruct *fgroup, fieldstruct *reffield,
           }
         if (samp2->flux >= hsn_thresh*samp2->fluxerr)
           {
-          ix = (int)((msamp->wcsprop[lat]*DEG/MAS - offset_hsn)*scale_hsn);
+          ix = (int)((samp->wcsprop[lat]*DEG/MAS - offset_hsn)*scale_hsn);
           iy = (int)((msamp->wcsprop[lat]*DEG/MAS - offset_hsn)*scale_hsn);
           if (ix>=0 && ix<CPLOT_REFPROPN_HSN
 		&& iy>=0 && iy<CPLOT_REFPROPN_HSN)
