@@ -385,7 +385,7 @@ wcsstruct	*read_wcs(tabstruct *tab)
     strncpy(wcs->ctype[l], str, 8);
     sprintf(str, "CUNIT%-3d", l+1);
     FITSREADS(buf, str, str, "deg", MAXCHARS);
-    strncpy(wcs->cunit[l], str, 32);
+    strncpy(wcs->cunit[l], str, sizeof(wcs->cunit[l])-1);
     sprintf(str, "CRVAL%-3d", l+1);
     FITSREADF(buf, str, wcs->crval[l], 0.0);
     sprintf(str, "CRPIX%-3d", l+1);

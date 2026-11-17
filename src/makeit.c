@@ -206,10 +206,13 @@ void makeit(void)
                     delta = fabs(delta);
                     dd = (int)delta;
                     dm = (int)(60.0*(delta - dd));
-                    sprintf(str, "%s/%s_%02d%02d%c%02d%02d_r%-.0f.cat",
+                    if (snprintf(str, MAXCHAR, "%s/%s_%02d%02d%c%02d%02d_r%-.0f.cat",
                             prefs.outref_path,
                             astrefcats[prefs.astrefcat].name,
-                            hh,mm,sign,dd,dm, reffields[g]->maxradius*DEG/ARCMIN);
+                            hh,mm,sign,dd,dm, reffields[g]->maxradius*DEG/ARCMIN)
+                            >= MAXCHAR)
+                        error(EXIT_FAILURE, "*Error*: path too long: ",
+                                prefs.outref_path);
                     save_astreffield(str, reffields[g]);
                 }
             }

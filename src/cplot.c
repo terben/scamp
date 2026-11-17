@@ -126,13 +126,17 @@ int	cplot_init(int nx, int ny, cplotenum cplottype)
 	&& (prefs.cplot_device[dev-1] == CPLOT_PNG
 	|| prefs.cplot_device[dev-1] == CPLOT_JPEG))
     {
-    sprintf(str, "%s %s -geometry \"%dx%d\" -antialias %s",
-    prefs.cplot_antialiasexec,
-    plotfilename,
-	prefs.cplot_res[0]? prefs.cplot_res[0] : CPLOT_DEFRESX,
-	prefs.cplot_res[1]? prefs.cplot_res[1] : CPLOT_DEFRESY,
-	plotfilename);
-    system(str);
+/*-- Quote the filenames (they may contain spaces) and avoid buffer overflows */
+    if (snprintf(str, MAXCHAR, "%s '%s' -geometry \"%dx%d\" -antialias '%s'",
+		prefs.cplot_antialiasexec,
+		plotfilename,
+		prefs.cplot_res[0]? prefs.cplot_res[0] : CPLOT_DEFRESX,
+		prefs.cplot_res[1]? prefs.cplot_res[1] : CPLOT_DEFRESY,
+		plotfilename) < MAXCHAR)
+      system(str);
+    else
+      warning("Check-plot filename too long for anti-aliasing: ",
+		plotfilename);
     }
 
   if (dev>=prefs.ncplot_device)
