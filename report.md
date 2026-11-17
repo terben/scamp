@@ -491,3 +491,28 @@ Die Option ist seit 2013 auskommentiert (auch upstream) und unvollständig imple
 - **`ASTREFEPOCH_TYPE`** wirkt nur für VizieR-Kataloge, nicht für Referenzkataloge aus einer Datei (`ASTREF_CATALOG FILE`).
 
 **Empfehlung:** `CORRECT_PROPERMOTIONS` abgeschaltet lassen, bis Statistiken nach dem dritten Lösungsschritt neu berechnet werden und die Drift über Referenz-Eigenbewegungen pro Belichtung verankert ist.
+
+### Neue Option `ASTREFPROP_CORRECT` (Standard `N`)
+
+Ist `ASTREFPROP_CORRECT Y` gesetzt, rechnet `reproj_fgroup()` alle Detektionen eines Sterns, der im Referenzkatalog eine Eigenbewegung hat, mit dieser Katalog-Eigenbewegung auf die Epoche des Referenzsterns um. Das geschieht vor jedem Lösungsschritt und vor Statistik und Clipping.
+
+- Die Eigenbewegung wird wie beim Epochenwechsel in `astrefcat.c` mit `|μ|²/(|μ|²+|σ_μ|²)` gedämpft, unabhängig von `ASTREFREGUL_TYPE`.
+- Geändert werden nur die projizierten Positionen (`projpos`), nicht die Pixel- und Himmelspositionen.
+- Vor der Messung der Eigenbewegungen (`COMPUTE_PROPERMOTIONS`) wird ohne Korrektur neu projiziert.
+- Anders als `CORRECT_PROPERMOTIONS` ist das nicht zirkulär, weil die Eigenbewegungen von außen kommen.
+- Ohne Eigenbewegungen im Referenzkatalog hat die Option keine Wirkung.
+
+Ergebnisse mit den Testdaten oben (`INCLUDE_ASTREFCATALOG Y`):
+
+| Referenzkatalog | `ASTREFPROP_CORRECT` | WCS-Fehler | Eigenbewegung Referenzsterne RA/Dec (robuste Streuung) | externe Residuen / χ² |
+|---|---|---|---|---|
+| Epoche 2016 | N | 11,4 mas | 2,6 / 1,0 mas/yr | 31 mas / 3,2 |
+| Epoche 2016 | Y | 7,6 mas | 0,9 / 1,1 mas/yr | 15 mas / 0,59 |
+| mittlere Epoche 2018 | N | 7,9 mas | 2,5 / 1,1 mas/yr | 16 mas / 0,94 |
+| mittlere Epoche 2018 | Y | **5,0 mas** | **0,63 / 0,66 mas/yr** | 14 mas / 0,52 |
+
+Die zeitliche Drift der Rotation verschwindet mit dem Referenzkatalog auf der mittleren Epoche praktisch vollständig. Am besten wirkt die Option daher zusammen mit `ASTREFEPOCH_TYPE FIELDS_AVERAGE` (nur VizieR-Kataloge). Bei Katalogen aus einer Datei sollten die Positionen auf eine Epoche nahe der Beobachtungen gebracht werden.
+
+Verbleibende Grenze: Sterne ohne Referenz-Eigenbewegung tragen weiter zur Drift bei. In diesen pessimistischen Testdaten, in denen auch schwache Sterne zu 20 % schnell sind, sind das etwa 0,2 mas/yr/arcmin. Mit den gemessenen Eigenbewegungen dieser Sterne zu korrigieren (`CORRECT_PROPERMOTIONS` zusätzlich) verschlechtert das Ergebnis (WCS 15 mas) und wurde verworfen.
+
+`tests/test_propmotion01.py` prüft die Option in einem dritten Lauf: robuste Streuung der Eigenbewegungen der Referenzsterne unter 2 mas/yr; gemessen 1,15/1,12, ohne die Korrektur 2,52 in RA.
