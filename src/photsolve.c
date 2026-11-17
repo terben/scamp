@@ -131,7 +131,7 @@ void	photsolve_fgroups(fgroupstruct **fgroups, int nfgroup)
    int		*ci,*cio,*cioa,
 		*ci2,
 		*coeffindex, *coeffindex2,
-		f,f0,g,s, nfield,ninstru,nifields,ntfields,
+		f,f0,g,s, nfield,ninstru,nifields,
 		instru, ncoefftot, nlsamp,
 		nsamp, nscoeffmax, nscoeffmax2,
 		nlsampmax, offlag, photcode, nsamp2, nsamp3;
@@ -154,7 +154,6 @@ void	photsolve_fgroups(fgroupstruct **fgroups, int nfgroup)
       {
       fields = fgroups[g]->field;
       nfield = fgroups[g]->nfield;
-      ntfields = 0;
 /*---- Check that there is at least one photometric field */
       f0 = -1;
       for (f=0; f<nfield; f++)
@@ -172,7 +171,6 @@ void	photsolve_fgroups(fgroupstruct **fgroups, int nfgroup)
           field->photomflag = 2;
 /*------ Flag if it is linked to a genuine photometric field */
         field->photomlink = (( photcode==1)? 1 : 0);
-        ntfields++;
 	}
       for (f=0; f<nfield; f++)
         {

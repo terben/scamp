@@ -626,7 +626,9 @@ void makeit(void)
             }
             else
                 strcpy(extension, pstr);
-            sprintf(pstr, "_%d%s", g+1, extension);
+            if (snprintf(pstr, sizeof(filename)-(pstr-filename), "_%d%s", g+1, extension)
+                    >= (int)(sizeof(filename)-(pstr-filename)))
+                error(EXIT_FAILURE, "*Error*: output file name too long: ", filename);
             writemergedcat_fgroup(filename, fgroups[g]);
         }
     }
@@ -641,7 +643,9 @@ void makeit(void)
                 extension[0] = (char)'\0';
             } else
                 strcpy(extension, pstr);
-            sprintf(pstr, "_%0d%s", i+1, extension);
+            if (snprintf(pstr, sizeof(filename)-(pstr-filename), "_%0d%s", i+1, extension)
+                    >= (int)(sizeof(filename)-(pstr-filename)))
+                error(EXIT_FAILURE, "*Error*: output file name too long: ", filename);
             dgeomap_instru(fields, nfield, i, filename);
         }
     }
@@ -662,7 +666,9 @@ void makeit(void)
             }
             else
                 strcpy(extension, pstr);
-            sprintf(pstr, "_%d%s", g+1, extension);
+            if (snprintf(pstr, sizeof(filename)-(pstr-filename), "_%d%s", g+1, extension)
+                    >= (int)(sizeof(filename)-(pstr-filename)))
+                error(EXIT_FAILURE, "*Error*: output file name too long: ", filename);
             writefullcat_fgroup(filename, fgroups[g]);
         }
     }

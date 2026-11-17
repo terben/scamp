@@ -605,7 +605,7 @@ void	show_keys(tabstruct *tab, char **keynames, keystruct **keys, int nkeys,
    char			*buf, *rfield, *ptr;
    unsigned short	ashort = 1;
    int			*key_col,
-			i,j,k,n,c, larray,narray, nb, kflag, maxnbytes, nelem,
+			i,j,k,n,c, larray,narray, kflag, maxnbytes, nelem,
 			esize, bswapflag;
 
    typedef struct structreq_keyname
@@ -651,14 +651,6 @@ void	show_keys(tabstruct *tab, char **keynames, keystruct **keys, int nkeys,
 /* Size and number of lines in the binary table */
   larray = tab->naxisn[0];
   narray = tab->naxisn[1];
-
-  nb = 0;
-  if ((mask2 = mask))
-    {
-    for (i=narray; i--;)
-      if (*(mask2++))
-        nb++;
-    }
 
   if (!keynames)
     nkeys = tab->nkey;
