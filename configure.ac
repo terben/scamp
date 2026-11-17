@@ -50,17 +50,6 @@ AC_SUBST(DATE1, "$date1")
 AC_SUBST(DATE2, "$date2")
 AC_SUBST(DATE3, "$date3")
 
-# Include macros
-sinclude(acx_atlas.m4)
-sinclude(acx_openblas.m4)
-sinclude(acx_curl.m4)
-sinclude(acx_fftw.m4)
-sinclude(acx_mkl.m4)
-sinclude(acx_plplot.m4)
-sinclude(acx_prog_cc_optim.m4)
-sinclude(acx_pthread.m4)
-sinclude(acx_urbi_resolve_dir.m4)
-
 # Provide a special option for setting the package release number
 AC_ARG_WITH(release,
 	[AS_HELP_STRING([--with-release=<release number>],
