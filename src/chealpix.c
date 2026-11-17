@@ -155,9 +155,6 @@ static long nside2order(long nside) {
         return ((nside) & (nside - 1)) ? -1 : ilog2(nside);
 }
 
-static int spread_bits(int v) {
-    return utab[v & 0xff] | (utab[(v >> 8) & 0xff] << 16);
-}
 static void swap_int(int *a, int *b) {int c = *a; *a = *b; *b = c;}
 
 #ifndef __BMI2__

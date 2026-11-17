@@ -252,8 +252,6 @@ VERSION	28/06/2020
  ***/
 void	astrprop_fgroup(fgroupstruct *fgroup)
   {
-   fieldstruct	*field;
-   setstruct	*set;
    msamplestruct	*msamp;
    samplestruct	*samp,*samp2, *sampmin, *samppropmod;
    wcsstruct	*wcs, *wcsec;
@@ -263,9 +261,9 @@ void	astrprop_fgroup(fgroupstruct *fgroup)
 		wis, paral,paralerr, chi2,chi2min, propmod,propmodmin;
    unsigned short sexflagmask;
    unsigned int	imaflagmask;
-   int		d,f,s,m,n, naxis, nfield, nsamp,nsamp2, lng,lat, celflag,
+   int		d,f,m, naxis, nfield,nsamp2, lng,lat, celflag,
 		propflag, paralflag, refflag, ncoeff,ncoeffp1,
-		nfree, nbad,nbadmax, bad, nfreemin, npropmean;
+		nfree, nbad,nbadmax, nfreemin, npropmean;
 
   sexflagmask = prefs.astr_sexflagsmask;
   imaflagmask = prefs.astr_imaflagsmask;

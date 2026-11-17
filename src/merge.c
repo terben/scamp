@@ -69,10 +69,9 @@ msamplestruct	*merge_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
     wcsposref[NAXIS],
     epoch,epochmin,epochmax, err2, spread, wspread,
     weight,weights, dummy;
-    long			dptr;
     unsigned short		sexflagmask;
     unsigned int		imaflagmask;
-    int			d,f,i,k,n,p,s, nall,nphotok,nposok, npinstru, naxis,
+    int			d,f,n,p,s, nall,nposok, npinstru, naxis,
                 nmsample, index, refflag;
 
     sexflagmask = prefs.astr_sexflagsmask;

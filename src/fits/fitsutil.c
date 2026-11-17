@@ -342,7 +342,7 @@ int	fitsread(char *fitsbuf, char *keyword, void *ptr, h_type htype,
 
   {
    int		i,pos;
-   char		s[4], str[84], str2[84];
+   char		s[4], str[84];
    char		*fitsbufpos, *st, *st2;
 
   if ((pos = fitsfind(fitsbuf, keyword)) < 0)

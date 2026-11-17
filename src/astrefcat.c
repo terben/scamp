@@ -227,7 +227,6 @@ astrefstruct	astrefcats[] =
   {""}
  };
 
-static char	*astref_strncpy(char *dest, char *src, int n);
 static void	vizier_to_array(char *str, char (*cols)[COLUMN_SIZE]);
 
 const char	astref_ctype[NAXIS][8]= {"RA---STG", "DEC--STG"};
@@ -267,14 +266,14 @@ fieldstruct	*get_astreffield(astrefenum refcat, double *wcspos,
 		*ctype[NAXIS],
 		*sepoch[NAXIS], *sprop[NAXIS], *sproperr[NAXIS],
 		*sflag, *smag, *smagerr,
-		*colname, *col,
+		*colname,
 		*bandname, *vizierbandname, *catname,
-		flag1,flag2, smode;
+		flag1,flag2;
    double	poserr[NAXIS], prop[NAXIS], properr[NAXIS],
 		mag[MAX_BAND], magerr[MAX_BAND], flux, fluxerr, epoch,
-		alpha,delta, dist, poserra,poserrb,poserrtheta, cpt,spt,
+		alpha,delta, poserra,poserrb,poserrtheta, cpt,spt,
 		prop2, properr2, propfac;
-   int		b,c,d,i,n,s,
+   int		b,c,d,n,s,
 		nsample,nsamplemax, nobs, mode, qual, band, nband, cindex;
 
 /* One needs 2 angular coordinates here! */
@@ -1580,32 +1579,6 @@ setstruct *read_astrefsamples(setstruct *set, tabstruct *tab, char *rfilename,
 
   return set;
   }
-
-/***i** astref_strncpy ****************************************************
-PROTO	char *astref_strncpy(char *dest, char *src, int n)
-PURPOSE	Copy a piece of string with max length n, and end it with '\0'.
-INPUT	Destination string,
-	input string,
-	max number of characters.
-OUTPUT  Pointer to dest.
-NOTES   -.
-AUTHOR  E. Bertin (IAP)
-VERSION 10/09/2012
-*/
-static char	*astref_strncpy(char *dest, char *src, int n)
-
-  {
-   char	*destt;
-   int	i;
-
-  destt = dest;
-  for (i=n; i-- && *src != '\0';)
-    *(destt++) = *(src++);
-  *destt = '\0';
-
-  return dest;
-  }
-
 
 /***i** vizier_to_array ****************************************************
 PROTO	void vizier_to_array(char *str, char (*cols)[COLUMN_SIZE])

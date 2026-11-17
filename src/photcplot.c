@@ -832,7 +832,7 @@ int	cplot_photzp3d(fgroupstruct *fgroup)
 		*field;
    wcsstruct	*wcsin,*wcsout;
    PLFLT	cpoint[3], r[3],g[3],b[3], xl[3], yl[3], zl[3],
-		dx,dy,dz, lim, xmin,xmax, ymin,ymax, zmin,zmax, x1,y1, col;
+		dx,dy,dz, lim, xmin,xmax, ymin,ymax, zmin,zmax, col;
    PLINT	lwid;
    double	rawpos[NAXIS],rawpos2[NAXIS], wcspos[NAXIS],wcspos2[NAXIS],
 		raw,rawmax, dd,ddmax;

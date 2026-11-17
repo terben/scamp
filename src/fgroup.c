@@ -69,7 +69,7 @@ fgroupstruct **group_fields(fieldstruct **fields, int nfield, int *nfgroup) {
     fieldstruct *field1, *field2;
     setstruct *set1, *set2;
     char  str[80];
-    int  d, f1,f2, g,g2,g3, s1,s2, nset1, nset2,
+    int  f1,f2, g,g2,g3, s1,s2, nset1, nset2,
          testflag, ngroup;
 
     NFPRINTF(OUTPUT, "Grouping fields on the sky ...");

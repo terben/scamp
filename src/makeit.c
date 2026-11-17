@@ -77,7 +77,6 @@ void makeit(void)
     static char filename[MAXCHAR], extension[MAXCHAR], str[MAXCHAR];
     fgroupstruct **fgroups;
     fieldstruct **fields, **reffields;
-    setstruct *set;
     struct tm *tm;
     double alpha,delta, epoch_mean;
     char *pstr,

@@ -239,7 +239,7 @@ int	tree_knn(treestruct *tree, double *coords, int k, void **kleaf) {
    treenodestruct	*child, *node;
    double		dval;
    unsigned int		index[TREE_NDIM];
-   int			c, d, kk, depth;
+   int			c, d, kk;
 
   if (!tree->node)				// Return 0 for an empty tree
     return 0;

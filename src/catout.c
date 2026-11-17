@@ -81,24 +81,17 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
    keystruct		*key, *objkeys;
    msamplestruct	*msamp;
    mergedsamplestruct	mergedsample;
-   fieldstruct		*field;
-   setstruct		*set;
    samplestruct		*samp,*samp2;
    FILE			*ascfile;
    double		mag[MAXPHOTINSTRU], magerr[MAXPHOTINSTRU],
 			magdisp[MAXPHOTINSTRU], magchi2[MAXPHOTINSTRU],
-			magref[MAXPHOTINSTRU],
-			wcspos[NAXIS], wcsposerr[NAXIS], wcsposdisp[NAXIS],
-			wcsposref[NAXIS], wcsprop[NAXIS],wcsproperr[NAXIS],
-			wcsparal,wcsparalerr, wcschi2,
-			epoch,epochmin,epochmax, err2,
-			weight,weights, dummy;
+			magref[MAXPHOTINSTRU], err2;
    char			str[80],
 			*buf, *rfilename;
    unsigned short	sexflagmask;
    unsigned int		imaflagmask;
    int			nmag[MAXPHOTINSTRU],
-			d,f,i,k,m,n,p,s, nall,nphotok,nposok, npinstru, naxis,
+			d,i,k,m,n,p,nphotok, npinstru, naxis,
 			index, refflag;
 
   if (prefs.mergedcat_type == CAT_NONE)
@@ -374,17 +367,12 @@ void	writefullcat_fgroup(char *filename, fgroupstruct *fgroup)
    tabstruct		*asctab, *imtab, *objtab;
    keystruct		*key, *objkeys;
    fullsamplestruct	fsample;
-   fieldstruct		*field;
-   setstruct		*set;
    msamplestruct	*msamp;
    samplestruct		*samp,*samp2;
    FILE			*ascfile;
-   double		wcspos[NAXIS], wcsposerr[NAXIS],
-			mag, magerr,epoch;
    char			str[80],
 			*buf, *rfilename;
-   int			nmag[MAXPHOTINSTRU],
-			d,i,k,m,n,p,nm, npinstru, naxis, index;
+   int			d,i,k,m,n, naxis;
 
   if (prefs.fullcat_type == CAT_NONE)
     return;

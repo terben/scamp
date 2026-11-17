@@ -112,10 +112,10 @@ void match_field(fieldstruct *field, fieldstruct *reffield)
     setstruct *refset, *refset2, *set, *fieldset;
     char  str[MAXCHAR];
     double wcspos[NAXIS],
-    angle,scale,dlng,dlat, dx,dy, dx2,dy2, sig, dlng2,dlat2,sig2, asig,
+    angle,scale,dlng,dlat, dx,dy, dx2,dy2, sig,sig2, asig,
     dangle,dscale, ddlng,ddlat, shear,sangle, sheartot, sangletot,
     matchresol, refarea,area, refcrossec,crossec;
-    int  i,j,k, lng,lat,
+    int  i,k, lng,lat,
          naxis, nmax;
 
     sprintf(str, "Matching field %.*s ...", MAXCHAR - 20, field->rfilename);
@@ -706,12 +706,12 @@ double match_findxy(setstruct *set, setstruct *refset,
     wcsstruct *wcs;
     char  str[MAXCHAR],
     *rfilename;
-    double lopass[NAXIS], hipass[NAXIS], rawpos[NAXIS], wcspos[NAXIS],
+    double lopass[NAXIS], hipass[NAXIS],
     xfac,xerrfac,xzero, yfac,yerrfac,yzero, x,y, xsig,ysig, sig,
     flux, poserr;
     float *histo, *rhisto;
     int  csize[NAXIS],
-    i,k,n, nrefsample, nsample, lng,lat,
+    i,n, nrefsample, nsample, lng,lat,
     naxis, cnaxis, cnpix, checknum, ival;
 
     naxis = set->naxis;
@@ -1171,7 +1171,7 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
     char  str[MAXCHAR];
 #endif
     double alpha[9], blng[3], blat[3],
-    rawpos[NAXIS], wcspos[NAXIS],crpix[NAXIS],
+    rawpos[NAXIS],crpix[NAXIS],
     sig, rlim, r2,r2min, reflng,reflat,
     lng1,lat1,lng2,lat2, latmin,latmax,
     dlng12,dlat12, wi, x,y, det,
@@ -1386,7 +1386,7 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
     {
         samplestruct *sample;
         float fposerr2,fposerr2max;
-        double mean, poserr2;
+        double poserr2;
         int  i, lng,lat, nsample;
 
         if (!set->nsample)
@@ -1488,9 +1488,8 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
     void update_wcsas(wcsstruct *wcs, double angle, double scale)
     {
         double a[4],b[4],
-        *c,*at, *pv1, *pv2, *pvt1, *pvt2,
-        val, cas, sas, fascale, sgn;
-        int  i,j,k, lng,lat,naxis, npv;
+        *c,*at, *pv1, *pv2, *pvt1, *pvt2, cas, sas, fascale, sgn;
+        int  i,j, lng,lat,naxis, npv;
 
         lng = wcs->lng;
         lat = wcs->lat;
@@ -1563,9 +1562,8 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
     void update_wcsss(wcsstruct *wcs, double sangle, double ratio)
     {
         double a[4],b[4],
-        *c,*at,
-        val, cas, sas;
-        int  i,j,k, lng,lat,naxis;
+        *c,*at, cas, sas;
+        int  i,j, lng,lat,naxis;
 
         lng = wcs->lng;
         lat = wcs->lat;
@@ -1617,7 +1615,6 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
     void compute_wcsss(wcsstruct *wcs, double *sangle, double *shear)
     {
         double a11,a12,a21,a22, x,y;
-        int  lng,lat,naxis;
 
 /*
         lng = wcs->lng;
@@ -1668,9 +1665,8 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
      ***/
     void update_wcscc(wcsstruct *wcs, double dx, double dy)
     {
-        double wcspos[NAXIS];
 
-        int  i, lng,lat, naxis;
+        int  lng,lat, naxis;
 
         lng = wcs->lng;
         lat = wcs->lat;
@@ -1706,9 +1702,8 @@ void match_refine(setstruct *set, setstruct *refset, double matchresol,
     void update_wcsll(wcsstruct *wcs, double dlng, double dlat)
     {
         double wcspos[NAXIS], a[NAXIS*NAXIS],b[NAXIS*NAXIS],
-        *c,*at, *pv1, *pv2, *pvt1, *pvt2,
-        val, cas, sas, angle, dalpha;
-        int  i,j,k, lng,lat, naxis, npv;
+        *c,*at, *pv1, *pv2, *pvt1, *pvt2, cas, sas, angle, dalpha;
+        int  i,j, lng,lat, naxis, npv;
 
         lng = wcs->lng;
         lat = wcs->lat;

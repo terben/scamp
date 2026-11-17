@@ -4409,7 +4409,7 @@ int	cplot_astrepoch3d(fgroupstruct *fgroup)
 		*field;
    wcsstruct	*wcsin,*wcsout;
    PLFLT	cpoint[3], r[3],g[3],b[3], xl[3], yl[3], zl[3],
-		dx,dy,dz, lim, xmin,xmax, ymin,ymax, zmin,zmax, x1,y1, col;
+		dx,dy,dz, lim, xmin,xmax, ymin,ymax, zmin,zmax, col;
    PLINT	lwid;
    double	rawpos[NAXIS],rawpos2[NAXIS], wcspos[NAXIS],wcspos2[NAXIS],
 		raw,rawmax, dd,ddmax;
@@ -4626,11 +4626,8 @@ VERSION	13/12/2019
  ***/
 int	cplot_adprophisto2d(fgroupstruct *fgroup, double hsn_thresh)
   {
-   fieldstruct	*field;
    wcsstruct	*wcs;
-   setstruct	*set;
    msamplestruct	*msamp;
-   samplestruct	*samp, *samp2;
    char		str[80];
    double	offset,offset_hsn, scale,scale_hsn, boffset,bscale,
 		cutxmax,cutxmax_hsn, cutymax,cutymax_hsn, cx,cy, dx,dy;
@@ -4641,8 +4638,7 @@ int	cplot_adprophisto2d(fgroupstruct *fgroup, double hsn_thresh)
 		*clevel,*cutbin,*cutx,*cutx_hsn,*cuty,*cuty_hsn,
 		lim,maxlim, z,zmax,zmax_hsn;
    PLINT	lwid;
-   int		d,d2, f,i,m,n,s, ix,iy,
-		nsamp;
+   int		d,d2,i,m, ix,iy;
 
   if (cplot_init(1,1, CPLOT_ADPROP2D) == RETURN_ERROR)
     {

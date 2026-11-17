@@ -446,7 +446,7 @@ wcsstruct	*read_wcs(tabstruct *tab)
   if (!wcsset(wcs->naxis,(const char(*)[9])wcs->ctype, wcs->wcsprm)
 	&& wcs->wcsprm->flag<999)
     {
-     char	*pstr, tstr[100];
+     char	*pstr;
      double	dpar[6] = {0.0},
 		date, jdsec, tmp, biss;
      int	sflag;
@@ -892,9 +892,7 @@ void	invert_wcs(wcsstruct *wcs)
    double		*outpos,*outpost, *lngpos,*lngpost,
 			*latpos,*latpost,
 			lngstep,latstep, lngposo,latposo,rawsize, epsilon;
-   int			group[] = {1,1};
-				/* Don't ask, this is needed by poly_init()! */
-   int		i,j,lng,lat,deg, tnxflag, maxflag;
+   int		i,j,lng,lat, tnxflag, maxflag;
 
 /* Check first that inversion is not straightforward */
   lng = wcs->wcsprm->lng;

@@ -80,7 +80,6 @@ setstruct *read_samples(setstruct *set, tabstruct *tab, char *rfilename)
     tabstruct  *keytab;
     keystruct  *key;
     samplestruct  *sample;
-    wcsstruct  *wcs;
     t_type  contexttyp[MAXCONTEXT];
     void   *context[MAXCONTEXT];
     char   str[MAXCHAR],

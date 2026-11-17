@@ -203,7 +203,6 @@ CrossId_run(
         for (j=0; j<fields[i]->nset; j++) {
             set = fields[i]->set[j];
             for (k=0; k < set->nsample;k++) {
-                struct sample *s = &set->sample[k];
                 PixelStore_add(&ps, &set->sample[k]);
             }
         }
@@ -213,7 +212,6 @@ CrossId_run(
         for (j=0; j<reffield->nset; j++) {
             set = reffield->set[j];
                 for (k=0; k < set->nsample; k++) {
-                    struct sample *s = &set->sample[k];
                     PixelStore_add(&ps, &set->sample[k]);
                 }
         }

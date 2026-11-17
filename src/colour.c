@@ -73,8 +73,6 @@ VERSION	28/06/2020
 void	colour_fgroup(fgroupstruct **fgroups, int ngroup)
   {
    fgroupstruct		*fgroup;
-   fieldstruct		*field;
-   setstruct		*set;
    msamplestruct	*msamp;
    samplestruct		*samp,*samp2;
    double		*colmat,*wcolmat, *mcol,*wmcol, *col,*wcol, *mag,*wmag,
@@ -82,7 +80,7 @@ void	colour_fgroup(fgroupstruct **fgroups, int ngroup)
    float		colour;
    unsigned short	sexflagmask;
    unsigned int		imaflagmask;
-   int			c,f,g,m,n,s, b1, b2, c1,c2, band, ncolour, ninstru;
+   int			c,g,m, b1, b2, c1,c2, band, ncolour, ninstru;
 
   sexflagmask = prefs.phot_sexflagsmask;
   imaflagmask = prefs.phot_imaflagsmask;

@@ -77,7 +77,7 @@ int	dgeomap_instru(fieldstruct **fields, int nfield, int instru,
    unsigned short	sexflagmask;
    unsigned int		imaflagmask;
    char			str[MAXCHAR];
-   int			d,f,g,i,j,k,n,p,s, naxis, npixinx, npixiny, npixin,
+   int			d,f,i,j,k,n,p,s, npixinx, npixiny, npixin,
 			npixoutx, npixouty, npixout, nset,
 			ngeopoint, ngeopointmax, nneighbour, stepin, nlineout;
 

@@ -57,11 +57,10 @@ extern const char	notokstr[];
 int	main(int argc, char *argv[])
 
   {
-   FILE         *fp;
    double	tdiff, fields, dets;
    char		**argkey, **argval,
                 *str,*listbuf;
-   int		a, l, narg, nim, ntok, opt,opt2;
+   int		a, narg, nim, ntok, opt,opt2;
 
 #ifdef HAVE_SETLINEBUF
 /* flush output buffer at each line */

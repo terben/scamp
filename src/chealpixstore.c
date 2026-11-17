@@ -112,7 +112,6 @@ PixelStore_add(
 
     if (!avlpix) { // no such pixel
 
-        int i;
         QCALLOC(avlpix, pixel_avl, 1);
         avlpix->pixel.id = pixnum;
         QCALLOC(avlpix->pixel.samples, samplestruct*, SPL_BASE_SIZE);

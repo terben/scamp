@@ -122,19 +122,17 @@ void	astrsolve_fgroups(fgroupstruct **fgroups, int nfgroup) {
    samplestruct	*samp;
    polystruct	*poly, *poly2;
    char		str[64],
-		**contextname,
-		lap_equed;
+		**contextname;
    double	cmin[MAXCONTEXT],cmax[MAXCONTEXT],
 		cscale[MAXCONTEXT], czero[MAXCONTEXT],
-		*alpha, *beta,
-		alphamin, alphamin2, dval;
+		*alpha, *beta, dval;
    size_t	size;
    int		group2[NAXIS],
 		*findex, *findex2, *nsetmax, *nconst,*nc,*nc2,
-		c,cm,f,f2,g,g2,i,n,s,s2,sm, nfield,nfield2,
+		c,f,f2,g,g2,i,n,s,s2, nfield,nfield2,
 		ninstru, instru, naxis, ncoeff, ncoeff2, ncoefftot,
 		npcoeff, npcoeff2,
-		d, index, index2, minindex2,
+		d, index, index2,
 		ncontext, cx,cy, nicoeff, nicoeff2, groupdeg2,
 		startindex2, nmiss;
 
@@ -943,8 +941,7 @@ static void add_alphamat(double *alpha, int naxis, int ncoefftot,
     double	*cvo,
             weight2;
     size_t	rowp;
-    int		*cio,
-            d, p, q, lim, i1,i2;
+    int		d, p, q, i1,i2;
 
     if (*ci < 0 || *ci2 < 0)
         return;
@@ -1777,12 +1774,11 @@ void	astrweight_fgroups(fgroupstruct **fgroups, int nfgroup)
  ***/
 void	astr_orthopoly(polystruct *poly)
 {
-    samplestruct	*sample;
     double	pos[POLY_MAXDIM], posmin[POLY_MAXDIM],
     *basis,*data,*datat,
     norm, step;
     int		count[POLY_MAXDIM],
-    c,d,i,n, ndim, ncoeff, ndata, nrange;
+    c,d,n, ndim, ncoeff, ndata, nrange;
 
     ncoeff = poly->ncoeff;
     ndim = poly->ndim;
