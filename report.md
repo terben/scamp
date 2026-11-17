@@ -579,3 +579,41 @@ Stand: 17.11.2026. Frage: Verändern unsere Änderungen (Abschnitte 1–11) die 
 Nicht abgedeckt: Läufe mit mehreren Threads (dort ist mit Rundungsrauschen zu rechnen, Abschnitt 10) und die VizieR-Kataloge.
 
 Zum Vergleich mit der Wahrheit (S1, Einzelchip): Positions-RMS je Belichtung 2,9–4,1 mas, Maximum 10 mas. Das liegt knapp an der Testgrenze von 10 mas (RMS) und zeigt, dass ein rauschfreier Test nötig ist, um Algorithmusfehler vom Rauschen zu trennen (Phase 1).
+
+### Phase 1: Multichip-Kamera mit simulierten Daten (Zwischenstand)
+
+**Werkzeuge** (alle in `tests/`, noch nicht in `make check`):
+- `mosaic_lib.py`: Wahrheitsmodell einer OmegaCAM-ähnlichen Kamera.
+  - 8×4 CCDs mit 2048×4100 Pixeln, 0,214″/Pixel, Lücken von 26″/86″; die oberen zwei Reihen sind um 180° gedreht.
+  - Die wahre Chiplage weicht von der nominalen ab (σ = 5 Pixel, 0,02°).
+  - Verzeichnung der Fokalebene: radial kubisch plus quadratische Terme, bis 11″ in der Feldecke.
+  - Die Abbildung ist pro Chip ein Polynom 3. Grades, also mit `DISTORT_DEGREES 3` exakt darstellbar.
+- `gen_synth_mosaic.py`: erzeugt MEF-LDAC-Kataloge (32 Erweiterungen je Belichtung, standardmäßig 6 Belichtungen) und einen Referenzkatalog.
+  - Die Header enthalten nur die nominale Lage ohne Verzeichnung und haben Zeige- und Drehfehler.
+  - Mit `--noise 0` sind Zentroide und Referenzen exakt; mit `--dscale` lässt sich die Verzeichnung skalieren.
+- `check_mosaic.py`: vergleicht die `.head`-Lösungen mit der Wahrheit, an den Sternen und auf einem Gitter über jeden ganzen Chip.
+  - Gegenprobe: Die Auswertung der `.head` mit astropy/wcslib stimmt mit SCAMPs eigenen Positionen im Full-Katalog auf 0,000 mas überein.
+  - Das Wahrheitsmodell ist auf 6·10⁻⁹ mas in sich konsistent.
+
+**Befunde bisher** (rauschfreie Daten, 60 000 Sterne auf 2,25 deg², Standardkonfiguration):
+
+1. **Chips mit großen Fehlern, die die Statistik nicht zeigt.**
+   - Eckchips liegen um bis zu 5″ daneben, mit Rauschen bis zu 9″. SCAMP meldet trotzdem interne Residuen von 27 mas und externe von 12 mas.
+   - Ursachen:
+     - Die Header-WCS liegt an den Eckchips bis 19″ daneben, also weit außerhalb von `CROSSID_RADIUS 2`.
+     - Das Clipping vergleicht jede Detektion mit dem *globalen* RMS. Ein schlechter Chip kann dabei fast alle Detektionen verlieren und geht dann ohne Bedingungen in den zweiten Lösungsschritt.
+     - Die Abschlussstatistik kreuzidentifiziert mit `ASTRCLIP_NSIGMA × sig_referr`. Bei kleinen Residuen fallen schlechte Chips damit ganz aus der Statistik.
+   - Nachgewiesen mit einem Debug-Build: Nach dem ersten Schritt verlieren einzelne Chips 40–55 % ihrer Detektionen.
+2. **Nur zwei Lösungsschritte, der erste ohne Clipping.**
+   - Bei hoher Sterndichte enthält der erste Schritt viele Fehlzuordnungen; das Ergebnis liegt ~110 mas neben der Referenz.
+   - Gibt man die `.head` als `.ahead` zurück, konvergiert die Lösung über mehrere Läufe.
+3. **Fehlerboden auch nach Konvergenz.** In rauschfreien Daten bleiben 0,5–1,3 mas RMS und 4–20 mas Maximum. Zwei Ursachen sind identifiziert:
+   - **Kreuzidentifikation (`crossid.c`):** Ketten werden zeitlich geordnet gebildet, und die Verknüpfung zur früheren Belichtung gewinnt unabhängig vom Abstand. Liegt ein Stern in einer Belichtung in einer Chiplücke, wird er mit einem fremden Stern innerhalb des Radius verknüpft. Das gilt auch für den Referenzkatalog. Der Effekt hängt von Radius und Sterndichte ab.
+   - **Tangentenpunkt:** CRVAL wird nicht nachgeführt. Ein Zeigefehler δ des Headers erzeugt pro Belichtung quadratische Terme (~δ·η²), die `STABILITY_TYPE INSTRUMENT` mit `FOCDISTORT_DEGREE 1` nicht aufnehmen kann. Ohne Header-Fehler halbiert sich der Boden (1,0 → 0,5 mas RMS).
+   - Der Rest (~0,5 mas RMS) ist noch nicht erklärt.
+4. **Divergenz:** Mit Verzeichnung und `CROSSID_RADIUS 2` wird die Lösung bei wiederholten Läufen schlechter (0,9″ → 13″ RMS).
+5. **`STABILITY_TYPE EXPOSURE`** liefert im ersten Lauf Fehler bis 18″, obwohl jeder Chip ~100 rauschfreie Referenzsterne hat.
+6. **Absturz:** Ein großes `ASTRCLIP_NSIGMA` (z. B. 1000) führt zu einem Stack-Überlauf. Die Ursache ist die unbegrenzte Rekursion `cross_sample` → `try_match` → `crossmatch` in `crossid.c` (>130 000 Ebenen bei 113″ Radius).
+7. **Kleinigkeit in `astrclip_fgroup()`:** `dr2` summiert beide Achsen, wird aber mit der Schwelle pro Achse verglichen.
+
+**Mit Rauschen** (Standardrauschen, 6″ Radius, drei iterierte Läufe): 2,3 mas RMS, 21 mas Maximum.
