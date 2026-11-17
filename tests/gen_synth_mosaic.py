@@ -35,6 +35,10 @@ ap.add_argument("--k3var", type=float, default=0.0,
                 help="relative rms variation of the radial distortion between exposures")
 ap.add_argument("--dscale", type=float, default=1.0,
                 help="scale factor for the instrument distortion (0 = none)")
+ap.add_argument("--layout-off", type=float, default=5.0,
+                help="rms offset of the true chip positions from the nominal layout (pixels)")
+ap.add_argument("--layout-rot", type=float, default=0.02,
+                help="rms rotation of the true chips w.r.t. the nominal layout (deg)")
 ap.add_argument("--same-epoch", action="store_true",
                 help="give all exposures the same MJD-OBS")
 ap.add_argument("--refsig", type=float, default=15.0, help="reference catalog error (mas)")
@@ -85,7 +89,7 @@ ldac_write_mef(os.path.join(args.outdir, "ref.cat"), [(refhead, [
 ])])
 
 # ---------------- camera ----------------
-lay_true = true_layout(rng)
+lay_true = true_layout(rng, args.layout_off, args.layout_rot)
 lay_nom = nominal_layout()
 nchip = len(lay_nom)
 

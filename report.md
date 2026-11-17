@@ -744,3 +744,23 @@ Auch nach der Korrektur von `crval_to_crpix()` liegt `LOOSE` (mit dem Standard `
 - SCAMP lässt die Kombination `LOOSE` + `INSTRUMENT` (Standard) bisher ohne Hinweis zu.
 
 **Nebenbefund zum Restfehler in der Standardkonfiguration:** Bei `UNCHANGED` liegt die WCS nach dem Matching bei 0,34 / 2,0 mas, nach der Lösung bei 0,13 / 5,2 mas. Der Löser senkt also den RMS, erhöht aber das Maximum; der Restfehler von ~5 mas entsteht in der Lösung selbst.
+
+**Wofür `LOOSE` gut ist: Header mit falscher Chipgeometrie.**
+- Testdaten: Chiplagen in den Headern um 50 Pixel (≈ 11″) rms und 0,1° falsch (`gen_synth_mosaic.py --layout-off 50 --layout-rot 0.1`), keine `.ahead`.
+- Werte: RMS / Max.
+
+| Modus + Stabilität | rauschfrei, ohne Verzeichnung | rauschfrei, mit Verzeichnung | verrauscht, mit Verzeichnung |
+|---|---|---|---|
+| `UNCHANGED` + `INSTRUMENT` | 16″ / 41″ | 19″ / 45″ | 27″ / 63″ |
+| `UNCHANGED` + `EXPOSURE` | 16″ / 84″ | 40″ / 593″ | 51″ / 777″ |
+| `FIX_FOCALPLANE` + `INSTRUMENT` | 16″ / 46″ | 21″ / 48″ | 26″ / 44″ |
+| `FIX_FOCALPLANE` + `EXPOSURE` | 118″ / 2014″ | 21″ / 75″ | 157″ / 2625″ |
+| `LOOSE` + `INSTRUMENT` | 13 / 148 mas | 49 / 351 mas | 50 / 353 mas |
+| **`LOOSE` + `EXPOSURE`** | **0,000 / 0,02 mas** | **0,86 / 45 mas** | **5,3 / 141 mas** |
+
+**Folgerungen:**
+- Nur `LOOSE` findet Chips, deren Header um viele Bogensekunden falsch liegen. Das Gesamtfeld-Matching korrigiert nur eine gemeinsame Verschiebung und Drehung pro Belichtung.
+- Sinnvoll ist `LOOSE` + `EXPOSURE`. Ohne Verzeichnung trifft es die Wahrheit exakt (0,02 mas): der erste Fall, in dem SCAMP rauschfreie Daten auf µas-Niveau löst.
+- Sinnvoller Arbeitsablauf: mit `LOOSE` + `EXPOSURE` ein Instrumentmodell bestimmen und als `.ahead` verwenden, danach `UNCHANGED`/`FIX_FOCALPLANE` + `INSTRUMENT`.
+- `LOOSE` + `INSTRUMENT` ist in allen getesteten Fällen schlechter als `LOOSE` + `EXPOSURE` bzw. als die anderen Modi mit gutem `.ahead`.
+- In allen gescheiterten Läufen meldet SCAMP interne Residuen von nur 0,05–0,56″, obwohl die Lösung um 15–2600″ falsch ist.
