@@ -1011,7 +1011,10 @@ epoch, sample->mag, sample->magerr);
         sample->wcsprop[lat] = prop[lat];
         sample->wcsproperr[lng] = properr[lng];
         sample->wcsproperr[lat] = properr[lat];
-        sample->epoch = epoch;
+/*------ Positions (and their uncertainties) now refer to epoch_in if the */
+/*------ reference epoch was changed above */
+        sample->epoch = (prefs.astrefepoch_type != ASTREFEPOCH_ORIGINAL)?
+				epoch_in : epoch;
         sample->spread = sample->spreaderr = 0.0;
         sample->sexflags = 0;	/* SEx flags not relevant for ref. sources*/
         sample->scampflags = 0;
