@@ -501,7 +501,7 @@ static int	astrprop_solve(fgroupstruct *fgroup, samplestruct *samp,
 /*---- First pass through overlapping detections to compute averages*/
       for (samp2=samp; samp2; samp2 = samp2->prevsamp)
         {
-        if (!(refflag || samp2->set->field->astromlabel)
+        if (!(refflag || samp2->set->field->astromlabel>=0)
 		|| (samp2->sexflags & sexflagmask)
 		|| (samp2->imaflags & imaflagmask)
 		|| (samp2->scampflags & SCAMP_BADPROPER))

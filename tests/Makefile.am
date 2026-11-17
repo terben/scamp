@@ -5,8 +5,8 @@ check_PROGRAMS = \
                  test_chealpixstore \
                  test_crossid_single_catalog \
                  test_crossid_single_catalog_moving
-TESTS		= test_chealpix test_chealpixstore test_crossid_single_catalog test_crossid_single_catalog_moving test_integration01.py test_synthetic01.py
-EXTRA_DIST	= test_integration01.py test_integration01.conf test_synthetic01.py gen_synth.py check_synth.py extra/megacam.ahead extra/test_chealpix.data extra/744331p.ascii extra/GAIA-DR1_1334+3754_r46.cat extra/7*p.cat 
+TESTS		= test_chealpix test_chealpixstore test_crossid_single_catalog test_crossid_single_catalog_moving test_integration01.py test_synthetic01.py test_propmotion01.py
+EXTRA_DIST	= test_integration01.py test_integration01.conf test_synthetic01.py gen_synth.py check_synth.py synth_lib.py test_propmotion01.py gen_synth_pm.py extra/megacam.ahead extra/test_chealpix.data extra/744331p.ascii extra/GAIA-DR1_1334+3754_r46.cat extra/7*p.cat 
 
 ALL_SCAMP_SOURCES = $(top_builddir)/src/*c $(top_builddir)/src/*h
 
@@ -44,4 +44,4 @@ test_crossid_single_catalog_moving_LDADD = $(top_builddir)/src/chealpix.o \
 
 distclean-local:
 		-rm *.head *.png *.xml
-		-rm -rf test_synthetic01.d
+		-rm -rf test_synthetic01.d test_propmotion01.d __pycache__
