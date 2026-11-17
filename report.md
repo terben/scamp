@@ -117,7 +117,7 @@ Siehe Abschnitt 6.
 ### Im Code, plattformunabhängig
 
 - **VizieR-Abfragen:** SCAMP fragt per `http://` an. Mehrere Spiegel waren beim Test nicht erreichbar oder lieferten leere Tabellen. Es lohnt sich, die Standard-Server (`REF_SERVER`) und die Umstellung auf `https://` zu prüfen.
-- **Compiler-Warnungen:** GCC mit `-Wall` meldet noch viele ungenutzte Variablen und zwei mögliche `sprintf`-Überläufe (`cplot.c:129`, `xml.c:214`, `astrefcat.c:304`). Letztere sollten auf `snprintf` umgestellt werden.
+- **Compiler-Warnungen:** Mit maximalen Warnstufen untersucht; die echten Probleme sind behoben, siehe Abschnitt 6. Übrig sind vor allem ungenutzte Variablen und nur theoretische `sprintf`-Überläufe (z. B. `xml.c:214`, `astrefcat.c:304`).
 - **Dokumentation:** Sphinx meldet noch 10 inhaltliche Warnungen, darunter das undefinierte Label `param_checkplot` und fehlende Leerzeilen in `Using.rst` und `Output.rst`.
 
 ## 5. Nachtrag: Branch `install-fix` – stabiles `./configure` ohne Optionen
@@ -210,3 +210,55 @@ Es sind keine Optionen nötig. Mit `--disable-plplot` lässt sich PLplot weglass
 
 - Nach den Änderungen am Build-System muss noch einmal unter Linux (Ubuntu) `make check` laufen, bevor `mac-compile` nach `master` geht.
 - Die VizieR-Abfragen scheitern auch auf dem Mac (`Connection timeout for vizier.unistra.fr`), siehe Abschnitt 4.
+
+## 6. Analyse mit maximalen Compiler-Warnstufen (Branch `mac-compile`)
+
+### Vorgehen
+
+Drei Builds wurden ausgewertet:
+
+| Compiler | Optionen | Warnungen |
+|---|---|---|
+| Apple clang 17 | `-Wall -Wextra -Wformat=2 -Wshadow -Wcast-qual -Wconditional-uninitialized -Wunreachable-code -Wshorten-64-to-32` u. a. | 623 |
+| GCC 16 (Homebrew, `gcc-16`) | `-Wall -Wextra -Wformat-overflow=2 -Wformat-truncation=2 -Wstringop-overflow=4 -Wmaybe-uninitialized -Wnull-dereference -Wduplicated-cond -Wlogical-op` u. a. | 493 |
+| Apple clang 17 | `-Weverything` (nur als Statistik) | 1995 |
+
+Über 90 % der Meldungen sind harmlos, z. B.:
+- nicht initialisierte Struct-Felder (190),
+- ungenutzte Variablen (~150),
+- `float`→`double`-Umwandlungen,
+- `%ld` für `size_t` in den Speicher-Makros (321 bei `-Weverything`),
+- unbekannte Intel-Pragmas.
+
+### Behobene Probleme
+
+| Commit | Stelle | Problem |
+|---|---|---|
+| `a9f968d` | `samples.c` | **Echter Fehler:** Ist `SPREAD_MODEL` oder `SPREADERR_MODEL` im Katalog vom Typ `double`, blieb der `float`-Zeiger uninitialisiert, wurde aber zuerst geprüft und dereferenziert. Folge: Müllwerte oder Absturz. |
+| `ef0cbcc` | `cplot.c:129` | **Pufferüberlauf:** Der `convert`-Befehl für die Kantenglättung (Dateiname zweimal) wurde in einen 512-Byte-Puffer geschrieben. Jetzt `snprintf`, Dateinamen in Anführungszeichen und eine Warnung, wenn der Befehl zu lang ist. |
+| `ef0cbcc` | `makeit.c:209` | **Pufferüberlauf:** `OUTREF_PATH` plus Katalogname. Jetzt `snprintf` und eine Fehlermeldung, wenn der Name zu lang ist. |
+| `ef0cbcc` | `fitswcs.c:388` | Ein `CUNIT` ab 32 Zeichen wurde ohne Endnull kopiert. |
+| `4deef35` | `fft.c:304` | Undefiniertes Verhalten durch einen XOR-Tausch (gleiches Muster wie früher in `match.c`). |
+| `4deef35` | `astrsolve.c:1634` | Undefiniertes Verhalten durch `x[i] = x[i] = BIG;`. |
+| `4deef35` | `astrsolve.c:251/258`, `astrcplot.c:4965/5230` | Zugriff über eine Schleifenvariable, die nur zufällig den richtigen Wert hat. |
+| `4deef35` | `catout.c:271` | Irreführende Einrückung. |
+
+### Geprüft, aber unkritisch
+
+- **Restliche Meldungen zu „möglicherweise uninitialisiert“:** Die Kontrollfluss-Analyse greift zu kurz, z. B. bei Schleifen, die mindestens einmal laufen, oder bei `error()`, das das Programm beendet.
+- **Format-Strings, die keine Literale sind (26):** Sie stammen aus internen Tabellen, nicht aus Benutzereingaben.
+- **`sprintf`-Meldungen zu Datum und Zahlenwerten:** Ein Überlauf tritt nur bei unrealistischen Werten auf.
+- **`strncpy` ohne Endnull:** Betrifft FITS-Felder fester Breite (8 bzw. 80 Zeichen) und ist so gewollt.
+- **Verkürzungen von 64 auf 32 Bit:** In HEALPix, beim FITS-I/O in Blöcken und im curl-Puffer bleiben die Werte klein.
+- **`copy_wcs(NULL)`** würde abstürzen, aber kein Aufrufer übergibt `NULL`.
+- **Leerzeichen in `CHECKPLOT_NAME`** sind ohnehin nicht möglich, weil SCAMP Konfigurationswerte an Leerzeichen trennt.
+
+Nach den Korrekturen besteht `make check` weiterhin 6/6. Der Standard-Build mit clang ist warnungsfrei, und die Check-Plots mit Kantenglättung funktionieren weiterhin.
+
+### So wiederholen
+
+```
+./configure CC=gcc-16 CFLAGS="-g -O2 -Wall -Wextra -Wformat-overflow=2 \
+  -Wformat-truncation=2 -Wstringop-overflow=4 -Wmaybe-uninitialized"
+make -k 2>&1 | grep "warning:" | sort -u
+```
