@@ -764,3 +764,17 @@ Auch nach der Korrektur von `crval_to_crpix()` liegt `LOOSE` (mit dem Standard `
 - Sinnvoller Arbeitsablauf: mit `LOOSE` + `EXPOSURE` ein Instrumentmodell bestimmen und als `.ahead` verwenden, danach `UNCHANGED`/`FIX_FOCALPLANE` + `INSTRUMENT`.
 - `LOOSE` + `INSTRUMENT` ist in allen getesteten Fällen schlechter als `LOOSE` + `EXPOSURE` bzw. als die anderen Modi mit gutem `.ahead`.
 - In allen gescheiterten Läufen meldet SCAMP interne Residuen von nur 0,05–0,56″, obwohl die Lösung um 15–2600″ falsch ist.
+
+**Konsequenz: Abbruch bei `LOOSE` + `INSTRUMENT`.** SCAMP bricht jetzt mit einem Fehler ab, wenn für ein astrometrisches Instrument `MOSAIC_TYPE LOOSE` und `STABILITY_TYPE INSTRUMENT` zusammentreffen (`label_field()` in `field.c`). Die Meldung nennt das Instrument und die Alternativen:
+
+```
+*Error*: incompatible configuration for astrometric instrument A1 (exp1.cat): MOSAIC_TYPE LOOSE
+requires STABILITY_TYPE EXPOSURE; with a good instrument model (.ahead), use MOSAIC_TYPE
+UNCHANGED, SAME_CRVAL or FIX_FOCALPLANE
+```
+
+- Weil `STABILITY_TYPE INSTRUMENT` der Standard ist, muss `LOOSE` jetzt ausdrücklich mit `STABILITY_TYPE EXPOSURE` angegeben werden.
+- Geprüft:
+  - `LOOSE` + `INSTRUMENT` bricht ab.
+  - `LOOSE` + `EXPOSURE`, `UNCHANGED` + `INSTRUMENT` sowie die Listen `LOOSE,UNCHANGED` / `EXPOSURE,INSTRUMENT` (mehrere Instrumente) laufen.
+  - `make check` 8/8.

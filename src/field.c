@@ -385,8 +385,21 @@ void    label_field(fieldstruct *field) {
 
     /* Use the derived astrometric label index to associate the right */
     /* mosaic and stability types to the present field */
-    field->mosaic_type = prefs.mosaic_type[field->astromlabel]; 
-    field->stability_type = prefs.stability_type[field->astromlabel]; 
+    field->mosaic_type = prefs.mosaic_type[field->astromlabel];
+    field->stability_type = prefs.stability_type[field->astromlabel];
+
+    /* MOSAIC_TYPE LOOSE matches every extension of every exposure on its
+       own; with STABILITY_TYPE INSTRUMENT the solution applies the same
+       correction to an extension in all exposures and cannot remove the
+       individual matching errors (up to 0.1-0.4" in synthetic tests) */
+    if (field->mosaic_type == MOSAIC_LOOSE
+        && field->stability_type == STABILITY_INSTRUMENT) {
+        sprintf(str, "astrometric instrument A%d (%.*s): MOSAIC_TYPE LOOSE "
+            "requires STABILITY_TYPE EXPOSURE; with a good instrument model "
+            "(.ahead), use MOSAIC_TYPE UNCHANGED, SAME_CRVAL or FIX_FOCALPLANE",
+            field->astromlabel+1, MAXCHAR/2, field->rfilename);
+        error(EXIT_FAILURE, "*Error*: incompatible configuration for ", str);
+    }
 }
 
 
