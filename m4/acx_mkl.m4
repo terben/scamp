@@ -96,84 +96,8 @@ if test x$flagicc = x; then
   fi
 fi
 
-if test x$flaggnu = xyes; then
-dnl GNU compiler on x86_64 Linux
-  AC_MSG_CHECKING([for INTEL's MKL usable with the GNU compiler])
-  if test "x$mklroot" = x; then
-dnl No MKL root directory: look for a distribution package (e.g. Debian/Ubuntu)
-    if test -f /usr/include/mkl/mkl.h; then
-      acx_mkl_incflags="-I/usr/include/mkl"
-    else
-      acx_mkl_incflags=""
-    fi
-    acx_mkl_libdir=""
-  else
-    acx_mkl_incflags="-I$mklroot/include"
-    if test -d "$mklroot/lib/intel64"; then
-      acx_mkl_libdir="$mklroot/lib/intel64"
-    else
-      acx_mkl_libdir="$mklroot/lib"
-    fi
-  fi
-  if test x$2 = xyes; then
-dnl 64 bit pointers
-    acx_mkl_iface="mkl_gf_ilp64"
-    AC_SUBST(MKL_CFLAGS, "-m64 -DMKL_ILP64 $acx_mkl_incflags")
-  else
-dnl 32 bit pointers
-    acx_mkl_iface="mkl_gf_lp64"
-    AC_SUBST(MKL_CFLAGS, "-m64 $acx_mkl_incflags")
-  fi
-  AC_SUBST(MKL_LDFLAGS, "")
-  if test x$3 = xyes; then
-dnl Static linking
-    if test "x$acx_mkl_libdir" = x; then
-      acx_mkl_sdir=`$CC -print-file-name=libmkl_core.a`
-      acx_mkl_sdir=`dirname "$acx_mkl_sdir"`
-    else
-      acx_mkl_sdir="$acx_mkl_libdir"
-    fi
-    acx_mkl_slibs="$acx_mkl_sdir/lib$acx_mkl_iface.a,\
-$acx_mkl_sdir/libmkl_gnu_thread.a,\
-$acx_mkl_sdir/libmkl_core.a,--end-group -lgomp -lpthread -lm -ldl"
-    AC_SUBST(MKL_LIBS, ["$startgroup,$acx_mkl_slibs"])
-dnl Convenience libraries are not built yet: leave them out of the link test
-    acx_mkl_testlibs="-Wl,--start-group,$acx_mkl_slibs"
-  else
-dnl Dynamic linking
-    if test "x$acx_mkl_libdir" = x; then
-      acx_mkl_libopt=""
-    else
-      acx_mkl_libopt="-L$acx_mkl_libdir "
-    fi
-    AC_SUBST(MKL_LIBS, "$acx_mkl_libopt-l$acx_mkl_iface -lmkl_gnu_thread \
-	-lmkl_core -lgomp -lpthread -lm -ldl")
-    acx_mkl_testlibs="$MKL_LIBS"
-  fi
-dnl Check that MKL can actually be compiled and linked with these settings
-  acx_mkl_save_CFLAGS="$CFLAGS"
-  acx_mkl_save_LIBS="$LIBS"
-  CFLAGS="$CFLAGS $MKL_CFLAGS"
-  LIBS="$acx_mkl_testlibs $LIBS"
-  AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#include <mkl.h>
-#include <mkl_lapacke.h>
-#include <fftw/fftw3_mkl.h>
-]], [[
-  double a = 4.0;
-  fftwf_plan plan;
-  mkl_set_num_threads(1);
-  plan = fftwf_plan_dft_r2c_2d(4, 4, (float *)0, (fftwf_complex *)0,
-	FFTW_ESTIMATE);
-  fftwf_destroy_plan(plan);
-  return (int)LAPACKE_dpotrf(LAPACK_ROW_MAJOR, 'L', 1, &a, 1);
-]])],
-    [AC_MSG_RESULT([yes])],
-    [AC_MSG_RESULT([no])
-     AC_MSG_ERROR([INTEL's MKL not found or not usable with $CC (MKL_CFLAGS = $MKL_CFLAGS, MKL_LIBS = $acx_mkl_testlibs). Set MKLROOT or use --with-mkl-dir! Exiting.])])
-  CFLAGS="$acx_mkl_save_CFLAGS"
-  LIBS="$acx_mkl_save_LIBS"
-elif test x$flagosx = xyes; then
+if test x$flagosx = xyes; then
+dnl MacOSX (INTEL compiler only)
 dnl MacOSX
   if test x$flag64 = xyes; then
 dnl INTEL compiler uses Intel64 architecture
@@ -203,7 +127,7 @@ dnl Static linking
 		$mklroot/lib/libmkl_core.a -lpthread -lm"])
       else
 dnl Dynamic linking
-        AC_SUBST(MKL_LDFLAGS, "-qmkl-ilp64")
+        AC_SUBST(MKL_LDFLAGS, "-qmkl")
         AC_SUBST(MKL_LIBS, "-L$mklroot/lib -lmkl_intel_lp64 \
 		-lmkl_intel_thread -lmkl_core -lpthread -lm")
       fi
@@ -225,59 +149,125 @@ dnl Dynamic linking
     fi
   fi
 else
-dnl Linux
-  if test x$flag64 = xyes; then
-dnl INTEL compiler uses Intel64 architecture
-    if test x$2 = xyes; then
-dnl 64 bit pointers
-      AC_SUBST(MKL_CFLAGS, "-qopenmp -DMKL_ILP64 -I$mklroot/include")
-      if test x$3 = xyes; then
-dnl Static linking
-      AC_SUBST(MKL_LDFLAGS, "-qmkl-ilp64 -static-intel")
-      AC_SUBST(MKL_LIBS,
-	["$startgroup,$mklroot/lib/intel64/libmkl_intel_ilp64.a,\
-$mklroot/lib/intel64/libmkl_intel_thread.a,\
-$mklroot/lib/intel64/libmkl_core.a,--end-group -lpthread -lm"])
-      else
-dnl Dynamic linking
-        AC_SUBST(MKL_LDFLAGS, "-qmkl-ilp64")
-        AC_SUBST(MKL_LIBS, "-L$mklroot/lib/intel64  -lmkl_intel_ilp64 \
-		-lmkl_intel_thread -lmkl_core -lpthread -lm")
-      fi
+dnl ---------------------------------------------------------------------
+dnl Linux: locate MKL from its root directory if available, otherwise in
+dnl the default paths (e.g., distribution packages on Debian/Ubuntu)
+dnl ---------------------------------------------------------------------
+  if test "x$mklroot" = x; then
+    if test -f /usr/include/mkl/mkl.h; then
+      acx_mkl_incflags="-I/usr/include/mkl"
     else
-dnl 32 bit pointers
-      AC_SUBST(MKL_CFLAGS, "-qopenmp -I$mklroot/include")
-      if test x$3 = xyes; then
-dnl Static linking
-        AC_SUBST(MKL_LDFLAGS, "-qmkl -static-intel")
-        AC_SUBST(MKL_LIBS,
-		["$startgroup,$mklroot/lib/intel64/libmkl_intel_lp64.a,\
-$mklroot/lib/intel64/libmkl_intel_thread.a,\
-$mklroot/lib/intel64/libmkl_core.a,--end-group -lpthread -lm"])
-      else
-dnl Dynamic linking
-        AC_SUBST(MKL_LDFLAGS, "-qmkl")
-        AC_SUBST(MKL_LIBS, "-L$mklroot/lib/intel64 -lmkl_intel_lp64 \
-	-lmkl_intel_thread -lmkl_core -lpthread -lm")
-      fi
+      acx_mkl_incflags=""
     fi
+    acx_mkl_libdir=""
   else
-dnl INTEL compiler uses IA32 architecture
-    AC_SUBST(MKL_CFLAGS, "-qopenmp -I$mklroot/include")
-    if test x$3 = xyes; then
-dnl Static linking
-      AC_SUBST(MKL_LDFLAGS, "-qmkl -static-intel")
-      AC_SUBST(MKL_LIBS, ["$startgroup,$mklroot/lib/ia32/libmkl_intel.a,\
-$mklroot/lib/ia32/libmkl_intel_thread.a,\
-$mklroot/lib/ia32/libmkl_core.a,--end-group -lpthread -lm"])
+    acx_mkl_incflags="-I$mklroot/include"
+    if test x$flaggnu = x && test x$flag64 = x; then
+      acx_mkl_libdir="$mklroot/lib/ia32"
+    elif test -d "$mklroot/lib/intel64"; then
+dnl Older layout (newer oneAPI releases put the libraries directly in lib/)
+      acx_mkl_libdir="$mklroot/lib/intel64"
     else
-dnl Dynamic linking
-      AC_SUBST(MKL_LDFLAGS, "-qmkl")
-      AC_SUBST(MKL_LIBS, "-L$mklroot/lib/ia32 -lmkl_intel -lmkl_intel_thread \
-	-lmkl_core -lpthread -lm")
+      acx_mkl_libdir="$mklroot/lib"
     fi
   fi
+
+dnl Interface and threading layers, compiler flags
+  if test x$flaggnu = xyes; then
+dnl GNU compiler on x86_64: GNU interface and threading layers
+    AC_MSG_CHECKING([for INTEL's MKL usable with the GNU compiler])
+    if test x$2 = xyes; then
+      acx_mkl_iface="mkl_gf_ilp64"
+      MKL_CFLAGS="-m64 -DMKL_ILP64 $acx_mkl_incflags"
+    else
+      acx_mkl_iface="mkl_gf_lp64"
+      MKL_CFLAGS="-m64 $acx_mkl_incflags"
+    fi
+    acx_mkl_thread="mkl_gnu_thread"
+    acx_mkl_omplib="-lgomp "
+    MKL_LDFLAGS=""
+  else
+dnl INTEL compiler: INTEL interface and threading layers; the OpenMP runtime
+dnl is provided by the compiler (-qopenmp). The libraries are given
+dnl explicitly, hence no -qmkl, which would rely on the compiler's own idea
+dnl of where MKL is installed.
+    AC_MSG_CHECKING([for INTEL's MKL usable with the INTEL compiler])
+    if test x$flag64 = x; then
+      acx_mkl_iface="mkl_intel"
+      MKL_CFLAGS="-qopenmp $acx_mkl_incflags"
+    elif test x$2 = xyes; then
+      acx_mkl_iface="mkl_intel_ilp64"
+      MKL_CFLAGS="-qopenmp -DMKL_ILP64 $acx_mkl_incflags"
+    else
+      acx_mkl_iface="mkl_intel_lp64"
+      MKL_CFLAGS="-qopenmp $acx_mkl_incflags"
+    fi
+    acx_mkl_thread="mkl_intel_thread"
+    acx_mkl_omplib=""
+    if test x$3 = xyes; then
+      MKL_LDFLAGS="-qopenmp -qopenmp-link=static -static-intel"
+    else
+      MKL_LDFLAGS="-qopenmp"
+    fi
+  fi
+
+dnl Libraries
+  if test x$3 = xyes; then
+dnl Static linking
+    if test "x$acx_mkl_libdir" = x; then
+      acx_mkl_sdir=`$CC -print-file-name=libmkl_core.a`
+      acx_mkl_sdir=`dirname "$acx_mkl_sdir"`
+    else
+      acx_mkl_sdir="$acx_mkl_libdir"
+    fi
+    acx_mkl_slibs="$acx_mkl_sdir/lib$acx_mkl_iface.a,\
+$acx_mkl_sdir/lib$acx_mkl_thread.a,\
+$acx_mkl_sdir/libmkl_core.a,--end-group ${acx_mkl_omplib}-lpthread -lm -ldl"
+    MKL_LIBS="$startgroup,$acx_mkl_slibs"
+dnl Convenience libraries are not built yet: leave them out of the link test
+    acx_mkl_testlibs="-Wl,--start-group,$acx_mkl_slibs"
+  else
+dnl Dynamic linking
+    if test "x$acx_mkl_libdir" = x; then
+      acx_mkl_libopt=""
+    else
+      acx_mkl_libopt="-L$acx_mkl_libdir "
+    fi
+    MKL_LIBS="$acx_mkl_libopt-l$acx_mkl_iface -l$acx_mkl_thread \
+-lmkl_core ${acx_mkl_omplib}-lpthread -lm -ldl"
+    acx_mkl_testlibs="$MKL_LIBS"
+  fi
+
+dnl Check that MKL can actually be compiled and linked with these settings
+  acx_mkl_save_CFLAGS="$CFLAGS"
+  acx_mkl_save_LDFLAGS="$LDFLAGS"
+  acx_mkl_save_LIBS="$LIBS"
+  CFLAGS="$CFLAGS $MKL_CFLAGS"
+  LDFLAGS="$LDFLAGS $MKL_LDFLAGS"
+  LIBS="$acx_mkl_testlibs $LIBS"
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <mkl.h>
+#include <mkl_lapacke.h>
+#include <fftw/fftw3_mkl.h>
+]], [[
+  double a = 4.0;
+  fftwf_plan plan;
+  mkl_set_num_threads(1);
+  plan = fftwf_plan_dft_r2c_2d(4, 4, (float *)0, (fftwf_complex *)0,
+	FFTW_ESTIMATE);
+  fftwf_destroy_plan(plan);
+  return (int)LAPACKE_dpotrf(LAPACK_ROW_MAJOR, 'L', 1, &a, 1);
+]])],
+    [AC_MSG_RESULT([yes])],
+    [AC_MSG_RESULT([no])
+     AC_MSG_ERROR([INTEL's MKL not found or not usable with $CC (MKL_CFLAGS = $MKL_CFLAGS, MKL_LDFLAGS = $MKL_LDFLAGS, MKL_LIBS = $acx_mkl_testlibs). Set MKLROOT or use --with-mkl-dir! Exiting.])])
+  CFLAGS="$acx_mkl_save_CFLAGS"
+  LDFLAGS="$acx_mkl_save_LDFLAGS"
+  LIBS="$acx_mkl_save_LIBS"
 fi
+AC_SUBST(MKL_CFLAGS)
+AC_SUBST(MKL_LDFLAGS)
+AC_SUBST(MKL_LIBS)
 
 dnl --------------------
 dnl Set internal flags
