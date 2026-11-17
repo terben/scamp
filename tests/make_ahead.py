@@ -25,6 +25,8 @@ ap.add_argument("outdir")
 ap.add_argument("--layout-err", type=float, default=0.0)
 ap.add_argument("--dscale-err", type=float, default=0.0)
 ap.add_argument("--seed", type=int, default=123)
+ap.add_argument("--no-pv0", action="store_true",
+                help="move the constant PV terms into CRPIX (PV1_0 = PV2_0 = 0)")
 args = ap.parse_args()
 os.makedirs(args.outdir, exist_ok=True)
 rng = np.random.default_rng(args.seed)
@@ -65,6 +67,31 @@ for e in range(len(t["expo"])):
         A2 = np.array([y ** i * x ** j for _, i, j in TERMS]).T
         a = np.linalg.lstsq(A1, xi, rcond=None)[0]
         b = np.linalg.lstsq(A2, eta, rcond=None)[0]
+        if args.no_pv0:
+            # put CRPIX on the pixel where the polynomial vanishes (the
+            # position of CRVAL), then refit without the constant terms
+            for _ in range(20):
+                xx, yy = 0.0, 0.0
+                for _ in range(50):     # Newton: solve P(x,y) = 0
+                    f1 = sum(v * xx ** i * yy ** j for v, (_, i, j) in zip(a, TERMS))
+                    f2 = sum(v * yy ** i * xx ** j for v, (_, i, j) in zip(b, TERMS))
+                    eps = 1e-7
+                    j11 = (sum(v * (xx + eps) ** i * yy ** j for v, (_, i, j) in zip(a, TERMS)) - f1) / eps
+                    j12 = (sum(v * xx ** i * (yy + eps) ** j for v, (_, i, j) in zip(a, TERMS)) - f1) / eps
+                    j21 = (sum(v * yy ** i * (xx + eps) ** j for v, (_, i, j) in zip(b, TERMS)) - f2) / eps
+                    j22 = (sum(v * (yy + eps) ** i * xx ** j for v, (_, i, j) in zip(b, TERMS)) - f2) / eps
+                    dxy = np.linalg.solve([[j11, j12], [j21, j22]], [f1, f2])
+                    xx, yy = xx - dxy[0], yy - dxy[1]
+                crpix = crpix + np.linalg.solve(cd, [xx, yy])
+                x = cd[0, 0] * (gx - crpix[0]) + cd[0, 1] * (gy - crpix[1])
+                y = cd[1, 0] * (gx - crpix[0]) + cd[1, 1] * (gy - crpix[1])
+                A1 = np.array([x ** i * y ** j for _, i, j in TERMS]).T
+                A2 = np.array([y ** i * x ** j for _, i, j in TERMS]).T
+                a = np.linalg.lstsq(A1, xi, rcond=None)[0]
+                b = np.linalg.lstsq(A2, eta, rcond=None)[0]
+                if abs(a[0]) + abs(b[0]) < 1e-14:
+                    break
+            a[0] = b[0] = 0.0
         cards = [card("EXTNAME", "CCD_%02d" % (c + 1)),
                  card("CTYPE1", "RA---TAN"), card("CTYPE2", "DEC--TAN"),
                  card("CRVAL1", ra_h), card("CRVAL2", dec_h),

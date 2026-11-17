@@ -68,6 +68,8 @@ res.update(star_rms=float(np.sqrt(np.mean(rs ** 2))), star_max=float(rs.max()),
            grid_rms=float(np.sqrt(np.mean(rg ** 2))), grid_max=float(rg.max()))
 
 # photometry: FLXSCALE (identical for all chips of an exposure) vs injected ZP offsets
+import warnings
+warnings.simplefilter("ignore", RuntimeWarning)   # no FLXSCALE without SOLVE_PHOTOM
 fs = np.array([np.nanmean([f for ee, f in fluxscale if ee == e]) for e in range(nexp)])
 fsspread = max(np.nanmax([f for ee, f in fluxscale if ee == e]) /
                np.nanmin([f for ee, f in fluxscale if ee == e]) for e in range(nexp))
