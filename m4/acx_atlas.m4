@@ -45,29 +45,37 @@ dnl Search include files
 dnl --------------------
 
 ATLAS_ERROR=""
-if test x$2 = x; then
-    acx_atlas_incdir=""
-    AC_CHECK_HEADERS([cblas.h clapack.h],,
-      [
-      acx_atlas_incdir="atlas/"
-      AC_CHECK_HEADERS([${acx_atlas_incdir}cblas.h ${acx_atlas_incdir}clapack.h],,
-        [ATLAS_ERROR="ATLAS header files not found!"])
-      ]
-    )
-  else
-    acx_atlas_incdir="$2/"
-    AC_CHECK_HEADERS([${acx_atlas_incdir}cblas.h ${acx_atlas_incdir}clapack.h],,
-    [
-      [acx_atlas_incdir="$2/include/"]
-      AC_CHECK_HEADER(
-       [${acx_atlas_incdir}cblas.h ${acx_atlas_incdir}clapack.h],,
-        [ATLAS_ERROR="ATLAS header files not found in "$2"!"]
-      )
-    ]
-  )
+
+dnl Candidate header directories ("default" = compiler's default search path)
+if test "x$2" = x; then
+  acx_atlas_dirs="default atlas/"
+  acx_atlas_where=""
+else
+  acx_atlas_dirs="$2/ $2/include/"
+  acx_atlas_where=" in $2"
 fi
 
-if test x$ATLAS_ERROR = x; then
+dnl ATLAS's clapack.h includes cblas.h from the same directory: check that
+dnl the pair is usable (on Debian/Ubuntu, cblas.h is an "alternative" that
+dnl may point to the header of another BLAS implementation)
+AC_MSG_CHECKING([for ATLAS's clapack.h])
+acx_atlas_incdir=""
+acx_atlas_found="no"
+for acx_atlas_d in $acx_atlas_dirs; do
+  test "x$acx_atlas_d" = xdefault && acx_atlas_d=""
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <${acx_atlas_d}clapack.h>]],
+	[[double a[1] = {1.0}, b[1] = {1.0};
+	  return clapack_dposv(CblasRowMajor, CblasUpper, 1, 1, a, 1, b, 1);]])],
+	[acx_atlas_incdir="$acx_atlas_d"; acx_atlas_found="yes"; break])
+done
+if test "x$acx_atlas_found" = xyes; then
+  AC_MSG_RESULT([${acx_atlas_incdir}clapack.h])
+else
+  AC_MSG_RESULT([no])
+  ATLAS_ERROR="ATLAS header files not found$acx_atlas_where (or cblas.h is not ATLAS's)! On Debian/Ubuntu, select ATLAS's cblas.h with update-alternatives --config cblas.h-x86_64-linux-gnu, or point --with-atlas-incdir to a directory where cblas.h and clapack.h are ATLAS's."
+fi
+
+if test "x$ATLAS_ERROR" = x; then
   AC_DEFINE_UNQUOTED(ATLAS_BLAS_H, "${acx_atlas_incdir}cblas.h", [BLAS header filename.])
   AC_DEFINE_UNQUOTED(ATLAS_LAPACK_H, "${acx_atlas_incdir}clapack.h", [CLAPACK header filename.])
 
@@ -88,7 +96,7 @@ dnl --------------------
   else
     acx_atlas_libopt="-L$1"
   fi
-  if test x$3 == xyes; then
+  if test "x$3" = xyes; then
 dnl Parallel ATLAS 3.10+
     acx_atlas_newlibs="tatlas"
 dnl Older parallel ATLAS
@@ -141,7 +149,7 @@ dnl -------------------------------------------------------------------------
 if test "x$ATLAS_ERROR" = "x"; then
   AC_DEFINE(HAVE_ATLAS,1,
 	[Define if you have the ATLAS libraries and header files.])
-  ATLAS_LIBS="$acx_atlas_libopt $ac_cv_search_clapack_dpotrf"
+  ATLAS_LIBS="$acx_atlas_libopt $ac_cv_search_clapack_dpotrf $acx_atlas_extralibs"
   AC_SUBST(ATLAS_CFLAGS)
   AC_SUBST(ATLAS_LDFLAGS, "")
   AC_SUBST(ATLAS_LIBS)
