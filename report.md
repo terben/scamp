@@ -1,4 +1,4 @@
-# SCAMP: Kompilierung unter Linux und macOS – Bericht
+# SCAMP: Kompilierung unter Linux und macOS (mit Ausblick auf Windows) – Bericht
 
 Stand: 17.11.2026. Die Linux-Arbeit lief im Branch `compile-test` (16 Commits auf `72b7e76`),
 der per Fast-Forward nach `master` übernommen wurde. Ein weiterer Commit (macOS-Datum,
@@ -263,3 +263,83 @@ Nach den Korrekturen besteht `make check` weiterhin 6/6. Der Standard-Build mit 
   -Wformat-truncation=2 -Wstringop-overflow=4 -Wmaybe-uninitialized"
 make -k 2>&1 | grep "warning:" | sort -u
 ```
+
+## 8. Windows: Einschätzung zu Cygwin (nicht getestet)
+
+Stand: 17.11.2026. Es gab keinen Build-Versuch. Die Einschätzung beruht auf einer Durchsicht des Codes und auf den Paketlisten von Cygwin (x86_64).
+
+### Kurzfassung
+
+SCAMP ist unter Cygwin sehr wahrscheinlich installierbar, aber nicht allein mit Cygwin-Paketen:
+- Der **Code** ist unkritisch.
+- Das Hindernis ist die **Linear-Algebra-Bibliothek**. SCAMP braucht LAPACKe (oder das `clapack.h` von ATLAS), und Cygwin liefert beides nicht.
+- Der realistische Weg ist, **OpenBLAS selbst zu bauen**, denn OpenBLAS enthält LAPACKe.
+- Für Windows-Nutzer ist **WSL2** (Ubuntu unter Windows) deutlich einfacher; dort gilt Abschnitt 3 unverändert.
+
+### Code
+
+- **Nur POSIX:** SCAMP verwendet nur Schnittstellen, die Cygwin nachbildet: `pthread` (nur Mutex und Condition-Variablen), `mmap`/`munmap`, `popen`/`system`, `signal`, `dlfcn.h` und `sysconf(_SC_NPROCESSORS_ONLN)`.
+- **Gleiches Datenmodell wie Linux:** Cygwin auf x86_64 ist LP64, `long` hat also 64 Bit. Die Typprobleme von Windows-nativ (dort ist `long` 32 Bit) entstehen deshalb nicht.
+- **glibc-Eigenheiten sind abgesichert:** `mallopt` und `malloc.h` stehen hinter `HAVE_MALLOPT`, `error_at_line` wird nicht verwendet. Der Testfehler, bei dem zufällig `error()` aus der glibc genommen wurde, ist behoben (`4e1dcb5`); Cygwin nutzt newlib statt glibc.
+- **Dateien:** FITS-Dateien werden mit `"rb"`/`"wb"` geöffnet, also im Binärmodus.
+- `url.c` hat einen Zweig `#ifdef _WIN32`. Den definiert der GCC von Cygwin nicht, es gilt also der POSIX-Zweig.
+
+### Abhängigkeiten
+
+| Bibliothek | Cygwin-Paket | Bewertung |
+|---|---|---|
+| FFTW 3 (float, threads) | `libfftw3-devel` 3.3.11 (enthält `cygfftw3f_threads-3.dll`) | vorhanden |
+| cURL | `libcurl-devel` | vorhanden |
+| BLAS/cblas | `liblapack-devel` 3.12: `cblas.h`, `libblas`, `liblapack`. OpenBLAS gibt es nur als Laufzeitersatz für diese DLLs, ohne Devel-Paket. | vorhanden, reicht aber nicht |
+| **LAPACKe** | **nicht vorhanden:** `liblapack-devel` enthält weder `lapacke.h` noch `liblapacke` | **fehlt** |
+| ATLAS (`clapack.h`) | nicht vorhanden | fehlt |
+| MKL | nicht für Cygwin | fehlt |
+| PLplot | kein Paket | selbst bauen oder `--disable-plplot` |
+| numpy, astropy (für `make check`) | numpy als `python3x-numpy` (Name je nach Python-Version); astropy nicht als Paket | astropy per `pip`, kompiliert C-Erweiterungen |
+
+SCAMP nutzt aus LAPACKe `LAPACKE_dposv`, `_dpotrf`, `_dpotri`, `_dpotrs`, `_dgesv`, `_dppsv`, `_dspsv` und `_dsysv`. Ohne LAPACKe oder ATLAS lässt es sich nicht linken. MKL ist die dritte Alternative, gibt es aber unter Cygwin nicht.
+
+### Vorgeschlagener Weg (ungetestet)
+
+1. **Cygwin-Pakete installieren:**
+   `gcc-core gcc-fortran make git autoconf automake libtool pkg-config libfftw3-devel libcurl-devel python3 python3x-numpy`. Für `make check` zusätzlich `pip install astropy`.
+2. **OpenBLAS mit LAPACKe aus dem Quellcode bauen:**
+   ```
+   git clone https://github.com/OpenMathLib/OpenBLAS.git
+   cd OpenBLAS
+   make -j USE_THREAD=1
+   make PREFIX=/usr/local install
+   ```
+3. **SCAMP bauen:**
+   ```
+   export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+   ./autogen.sh
+   ./configure --disable-plplot
+   make -j && make check
+   ```
+   - Ohne Optionen sollte die automatische Wahl (Abschnitt 5) ATLAS verwerfen und das selbst gebaute OpenBLAS nehmen. Für ATLAS fehlt `clapack.h`; das `cblas.h` aus `liblapack-devel` stört nicht, weil das Makro OpenBLAS am Eintrag `openblas_set_num_threads` erkennt.
+   - Falls das nicht klappt, die Pfade explizit angeben:
+     `--with-openblas-incdir=/usr/local/include --with-openblas-libdir=/usr/local/lib`.
+4. **Zur Laufzeit** muss die OpenBLAS-DLL über den `PATH` auffindbar sein, z. B. `/usr/local/bin`. Prüfen mit `ldd src/scamp.exe`.
+
+### Mögliche Stolpersteine
+
+- **Namen von Bibliotheken und Importbibliotheken:** Unter Cygwin linkt man über `lib*.dll.a`, zur Laufzeit werden `cyg*.dll` geladen. Es ist zu prüfen, ob `AC_SEARCH_LIBS` mit dem selbst gebauten OpenBLAS sofort funktioniert.
+- **libtool unter Cygwin** baut nur die internen statischen Bibliotheken (`libfits.a`, `libwcs_c.a`), das sollte unkritisch sein. Das Programm heißt `scamp.exe`; die Tests in `make check` müssen damit zurechtkommen. Die Python-Tests rufen `scamp` auf, und Cygwin findet `.exe` in der Regel auch ohne Endung.
+- **Leistung:** Threads und `mmap` sind unter Cygwin emuliert und langsamer als unter Linux. Für große Datenmengen ist WSL2 vorzuziehen.
+- **Ohne `--disable-plplot`** müsste PLplot selbst gebaut werden; das PLplot-Wiki beschreibt den Bau unter Cygwin.
+
+### Alternative: WSL2
+
+WSL2 unter Windows 10/11 bringt ein echtes Ubuntu mit. Dort funktionieren die Anleitung aus Abschnitt 3, alle Pakete (inklusive PLplot, astropy und MKL) und `make check` ohne Änderungen. Für Windows-Nutzer ist das der empfohlene Weg.
+
+### Testmöglichkeit
+
+Ein Cygwin-Build ließe sich ohne eigenen Windows-Rechner über GitHub Actions prüfen: Windows-Runner und die Action `cygwin/cygwin-install-action`, mit den Schritten 1–3 von oben. Das ist bisher nicht umgesetzt.
+
+### Quellen
+
+- Cygwin-Paket `liblapack-devel`: https://cygwin.com/packages/summary/liblapack-devel.html (Dateiliste: https://cygwin.com/packages/x86_64/liblapack-devel/liblapack-devel-3.12.0-1)
+- Cygwin-Paket `libfftw3-devel`: https://cygwin.com/packages/summary/libfftw3-devel.html (Dateiliste `libfftw3_3`: https://cygwin.com/packages/x86_64/libfftw3_3/libfftw3_3-3.3.11-1)
+- OpenBLAS unter Cygwin nur als Laufzeitersatz: https://sourceware.org/pipermail/cygwin-announce/2023-February/010968.html und https://sourceware.org/pipermail/cygwin/2020-April/244676.html
+- PLplot unter Cygwin: https://sourceforge.net/p/plplot/wiki/Setup_cygwin/
