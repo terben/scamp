@@ -1601,15 +1601,66 @@ int	compute_jacobian(samplestruct *sample, double *dprojdred)
 }
 
 
+/****** ref_propmotion *****************************************************
+  PROTO	samplestruct *ref_propmotion(samplestruct *samp, int lng, int lat,
+	double *prop)
+  PURPOSE	Find the reference star linked to a detection and return its
+	catalog proper motion, damped by its uncertainty.
+  INPUT	pointer to the sample (detection or reference star),
+	longitude index,
+	latitude index,
+	pointer to the output proper motion (deg/yr, mu_alpha*cos(delta)
+	and mu_delta).
+  OUTPUT	pointer to the reference sample, or NULL if the sample is not
+	linked to a reference star with a non-zero proper motion.
+  NOTES	Reference samples are always first in the chain of linked
+	detections (see crossid.c). The damping factor
+	|mu|^2/(|mu|^2+|sigma_mu|^2) is the same as for the change of
+	reference epoch in astrefcat.c.
+  VERSION	17/11/2026
+ ***/
+static samplestruct *ref_propmotion(samplestruct *samp, int lng, int lat,
+	double *prop)
+{
+    samplestruct	*refsamp;
+    double		prop2, properr2, fac;
+
+    if (lng == lat)
+        return NULL;
+    for (refsamp = samp; refsamp->prevsamp; refsamp = refsamp->prevsamp);
+    if (!refsamp->set->field->isrefcat)
+        return NULL;
+    prop2 = refsamp->wcsprop[lng]*refsamp->wcsprop[lng]
+        + refsamp->wcsprop[lat]*refsamp->wcsprop[lat];
+    if (prop2 <= 0.0)
+        return NULL;
+    properr2 = refsamp->wcsproperr[lng]*refsamp->wcsproperr[lng]
+        + refsamp->wcsproperr[lat]*refsamp->wcsproperr[lat];
+    fac = prop2 / (prop2 + properr2);
+    prop[lng] = refsamp->wcsprop[lng] * fac;
+    prop[lat] = refsamp->wcsprop[lat] * fac;
+
+    return refsamp;
+}
+
+
 /****** reproj_fgroup *******************************************************
   PROTO	void reproj_fgroup(fgroupstruct *fgroup, fieldstruct *reffield,
   int propflag)
   PURPOSE	Perform re-projection of sources in a group of fields.
   INPUT	pointer to the group of fields,
   pointer to the reference field,
-  proper motion correction flag.
+  proper motion correction flags: REPROJ_PROPCORR (measured proper
+  motions) and/or REPROJ_REFPROPCORR (reference catalog proper motions).
   OUTPUT	-.
   NOTES	Uses the global preferences.
+  With REPROJ_REFPROPCORR, the projected positions of all detections
+  linked to a reference star with a proper motion in the reference
+  catalog are moved to the epoch of the reference star, using that
+  proper motion (damped by its uncertainty). This prevents the motions
+  of reference stars from being absorbed as a time-dependent drift of
+  the astrometric solutions. Raw and celestial positions are not
+  modified.
   AUTHOR	E. Bertin (IAP)
   VERSION	19/02/2018
  ***/
@@ -1620,8 +1671,8 @@ void	reproj_fgroup(fgroupstruct *fgroup, fieldstruct *reffield, int propflag)
     setstruct		**pset,
                     *set;
     msamplestruct	*msamp;
-    samplestruct	*samp;
-    double		wcspos[NAXIS],
+    samplestruct	*samp, *refsamp;
+    double		wcspos[NAXIS], refprop[NAXIS],
     *projposmin,*projposmax,
     prop2, properr2, rprop;
     int			i,f,s, lng,lat, nsamp, nfield, naxis;
@@ -1651,7 +1702,20 @@ void	reproj_fgroup(fgroupstruct *fgroup, fieldstruct *reffield, int propflag)
             for (nsamp=set->nsample; nsamp--; samp++)
             {
                 raw_to_wcs(set->wcs, samp->rawpos, samp->wcspos);
-                if (propflag && samp->msamp)
+                if ((propflag & REPROJ_REFPROPCORR)
+                        && (refsamp = ref_propmotion(samp, lng, lat, refprop)))
+                {
+                    /*-------- Move to the epoch of the reference star */
+                    wcspos[lng] = samp->wcspos[lng]
+                        + (refsamp->epoch - samp->epoch) * refprop[lng]
+                        / cos(samp->wcspos[lat]*DEG);
+                    wcspos[lat] = samp->wcspos[lat]
+                        + (refsamp->epoch - samp->epoch) * refprop[lat];
+                    for (i=0; i<naxis; i++)
+                        samp->vrawpos[i] = samp->rawpos[i];
+                    wcs_to_raw(wcs, wcspos, samp->projpos);
+                }
+                else if ((propflag & REPROJ_PROPCORR) && samp->msamp)
                     /*-------- Correct for proper motions if asked to */
                 {
                     msamp = samp->msamp;
@@ -1698,8 +1762,12 @@ void	reproj_fgroup(fgroupstruct *fgroup, fieldstruct *reffield, int propflag)
         samp = set->sample;
         for (nsamp=set->nsample; nsamp--; samp++)
         {
-            if (propflag && samp->msamp)
+            if ((propflag & REPROJ_PROPCORR) && samp->msamp
+                    && !((propflag & REPROJ_REFPROPCORR)
+                        && ref_propmotion(samp, lng, lat, refprop)))
                 /*----- Correct for proper motions if asked to */
+                /*----- (reference stars with a catalog proper motion */
+                /*----- stay at their own epoch) */
             {
                 msamp = samp->msamp;
                 for (i=0; i<naxis; i++)

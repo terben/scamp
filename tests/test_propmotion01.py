@@ -4,8 +4,8 @@
 Synthetic proper motion test: generate multi-epoch catalogues of moving
 stars (gen_synth_pm.py), run SCAMP with COMPUTE_PROPERMOTIONS, with and
 without the reference catalogue in the proper motion fit
-(INCLUDE_ASTREFCATALOG Y/N), and compare the measured proper motions of
-the merged sources with the truth.
+(INCLUDE_ASTREFCATALOG Y/N), and with ASTREFPROP_CORRECT Y, and compare
+the measured proper motions of the merged sources with the truth.
 """
 import os, subprocess, sys, warnings
 import numpy as np
@@ -21,6 +21,10 @@ D2R = np.pi / 180
 MAX_ZERO_FRAC = 0.01
 MAX_MAD = 6.0
 SLOPE_TOL = 0.05
+# With ASTREFPROP_CORRECT Y the drift is anchored by the reference catalog
+# proper motions: the scatter for reference stars drops from about 3 to
+# about 1-1.5 mas/yr.
+MAX_MAD_REFCORR = 2.0
 
 def run(cmd, **kw):
   print("+", " ".join(cmd))
@@ -70,8 +74,9 @@ cats = ["exp%d.cat" % i for i in range(1, len(truth["epochs"]) + 1)]
 fast_t = (np.abs(truth["pmra"]) > 15) | (np.abs(truth["pmde"]) > 15)
 ok = True
 
-for inc in ("Y", "N"):
-  tag = "inc" + inc
+for inc, refcorr in (("Y", "N"), ("N", "N"), ("Y", "Y")):
+  tag = "inc" + inc + ("_refcorr" if refcorr == "Y" else "")
+  label = inc + ("+REFCORR" if refcorr == "Y" else "")
   ret = run([scamp] + cats + ["-c", "default.scamp",
     "-ASTREF_CATALOG", "FILE", "-ASTREFCAT_NAME", "ref.cat",
     "-ASTREFCENT_KEYS", "X_WORLD,Y_WORLD",
@@ -83,9 +88,11 @@ for inc in ("Y", "N"):
     "-ASTRINSTRU_KEY", "FILTER", "-PHOTINSTRU_KEY", "FILTER",
     "-DISTORT_DEGREES", "3", "-CHECKPLOT_TYPE", "NONE",
     "-COMPUTE_PROPERMOTIONS", "Y", "-INCLUDE_ASTREFCATALOG", inc,
+    "-ASTREFPROP_CORRECT", refcorr,
     "-MERGEDOUTCAT_TYPE", "FITS_LDAC", "-MERGEDOUTCAT_NAME", tag + ".cat",
     "-XML_NAME", tag + ".xml", "-VERBOSE_TYPE", "NORMAL"], cwd=outdir)
-  if not report("SCAMP execution (INCLUDE_ASTREFCATALOG %s)" % inc, ret == 0):
+  if not report("SCAMP execution (INCLUDE_ASTREFCATALOG %s, ASTREFPROP_CORRECT %s)"
+                % (inc, refcorr), ret == 0):
     ok = False
     continue
 
@@ -100,15 +107,20 @@ for inc in ("Y", "N"):
 
   zero = np.mean((pma == 0.0) & (pmd == 0.0))
   ok &= report("[%s] sources without proper motion: %.1f%% (< %.0f%%)"
-               % (inc, 100 * zero, 100 * MAX_ZERO_FRAC), zero < MAX_ZERO_FRAC)
+               % (label, 100 * zero, 100 * MAX_ZERO_FRAC), zero < MAX_ZERO_FRAC)
   for axis, meas, true in (("PMALPHA", pma, truth["pmra"][i]),
                            ("PMDELTA", pmd, truth["pmde"][i])):
     s = mad(meas - true)
     ok &= report("[%s] %s robust scatter: %.2f mas/yr (< %.1f)"
-                 % (inc, axis, s, MAX_MAD), s < MAX_MAD)
+                 % (label, axis, s, MAX_MAD), s < MAX_MAD)
     f = fast_t[i]
     slope = np.polyfit(true[f], meas[f], 1)[0]
     ok &= report("[%s] %s slope for fast movers: %.3f (1 +/- %.2f)"
-                 % (inc, axis, slope, SLOPE_TOL), abs(slope - 1) < SLOPE_TOL)
+                 % (label, axis, slope, SLOPE_TOL), abs(slope - 1) < SLOPE_TOL)
+    if refcorr == "Y":
+      r = truth["mag"][i] < 20.0          # stars in the reference catalog
+      s = mad(meas[r] - true[r])
+      ok &= report("[%s] %s robust scatter, reference stars: %.2f mas/yr (< %.1f)"
+                   % (label, axis, s, MAX_MAD_REFCORR), s < MAX_MAD_REFCORR)
 
 sys.exit(0 if ok else 1)

@@ -39,6 +39,10 @@
 #define	ASTREF_WEIGHTFACTOR	1.0	/* Fudge factor applied to ref.weights*/
 #define	ASTROM_REGULFACTOR	0.001	/* Fudge factor applied to regul. */
 
+/* Flags for reproj_fgroup() */
+#define	REPROJ_PROPCORR		0x01	/* Correct with measured motions */
+#define	REPROJ_REFPROPCORR	0x02	/* Correct with ref.cat. motions */
+
 /*--------------------------- structure definitions -------------------------*/
 /*---------------------------------- protos --------------------------------*/
 extern int	compute_jacobian(samplestruct *sample, double *dprojdred);

@@ -81,10 +81,13 @@ void makeit(void)
     double alpha,delta, epoch_mean;
     char *pstr,
          sign;
-    int i,f,g, nfield, ngroup, nsample, nclip, hh,mm,dd,dm;
+    int i,f,g, nfield, ngroup, nsample, nclip, hh,mm,dd,dm, reprojflag;
 
     /* Install error logging */
     error_installfunc(write_error);
+
+    /* Correct detections of reference stars for catalog proper motions? */
+    reprojflag = prefs.astrefpropcorr_flag? REPROJ_REFPROPCORR : 0;
 
     /* Processing start date and time */
     thetime = time(NULL);
@@ -253,7 +256,7 @@ void makeit(void)
     for (g=0; g<ngroup; g++)
     {
         /*-- Reproject all fields from a group to a common projection */
-        reproj_fgroup(fgroups[g], reffields[g], 0);
+        reproj_fgroup(fgroups[g], reffields[g], reprojflag);
         /*-- Perform cross-identifications across catalogs */
         sprintf(str, "Making preliminary cross-identifications in group %d", g+1);
         NFPRINTF(OUTPUT, str);
@@ -270,7 +273,7 @@ void makeit(void)
         for (g=0; g<ngroup; g++)
         {
             /*---- Reproject all fields from a group to a common projection (update) */
-            reproj_fgroup(fgroups[g], reffields[g], 0);
+            reproj_fgroup(fgroups[g], reffields[g], reprojflag);
             /*---- Perform cross-identifications across catalogs */
             sprintf(str, "Making cross-identifications in group %d", g+1);
             NFPRINTF(OUTPUT, str);
@@ -304,7 +307,7 @@ void makeit(void)
     for (g=0; g<ngroup; g++)
     {
         /*-- Reproject all fields from a group to a common projection (update) */
-        reproj_fgroup(fgroups[g], reffields[g], 0);
+        reproj_fgroup(fgroups[g], reffields[g], reprojflag);
         /*-- Perform cross-identifications across catalogs */
         sprintf(str, "Making cross-identifications in group %d", g+1);
         NFPRINTF(OUTPUT, str);
@@ -473,7 +476,7 @@ void makeit(void)
         }
         for (g=0; g<ngroup; g++)
             /*---- Reproject to a common projection while correcting for proper motions */
-            reproj_fgroup(fgroups[g], reffields[g], 1);
+            reproj_fgroup(fgroups[g], reffields[g], REPROJ_PROPCORR | reprojflag);
         NFPRINTF(OUTPUT, "Pairing detections...");
 
        for (g=0; g<ngroup; g++)
@@ -498,9 +501,11 @@ void makeit(void)
             /*-- Re-do Cross-ID to recover possibly fast moving objects */
             NFPRINTF(OUTPUT, "Pairing detections...");
 
-            if (prefs.propmotioncorr_flag && prefs.solvastrom_flag)
-                /*---- Projected positions are still corrected for proper */
-                /*---- motions and refer to the previous solution */
+            if ((prefs.propmotioncorr_flag && prefs.solvastrom_flag)
+                    || reprojflag)
+                /*---- Proper motions must be measured from projected */
+                /*---- positions that are not corrected for proper motions */
+                /*---- (and refer to the latest solution) */
                 for (g=0; g<ngroup; g++)
                     reproj_fgroup(fgroups[g], reffields[g], 0);
             for (g=0; g<ngroup; g++)
@@ -518,7 +523,8 @@ void makeit(void)
             }
             for (g=0; g<ngroup; g++)
                 /*---- Reproject all fields from a group to a common projection (update) */
-                reproj_fgroup(fgroups[g], reffields[g], prefs.propmotioncorr_flag);
+                reproj_fgroup(fgroups[g], reffields[g],
+                        (prefs.propmotioncorr_flag? REPROJ_PROPCORR : 0) | reprojflag);
         }
 
     /* Save headers */

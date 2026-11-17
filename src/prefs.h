@@ -200,6 +200,7 @@ typedef struct
   int		propmotion_flag;		/* Compute proper motions? */
   int		propmotioncorr_flag;		/* Correct proper motions? */
   int		astrefinprop_flag;		/* Use ref.catalog in pm? */
+  int		astrefpropcorr_flag;		/* Correct for ref.cat. pm? */
 /* Differential Chromatic Refraction (DRC) */
   int		colourshiftcorr_flag;		/* Correct colour shifts?*/
 
