@@ -457,5 +457,37 @@ Stand: 17.11.2026. Ziel: Der Build mit `-Wall` soll ohne Warnungen durchlaufen, 
 
 ### Offen bzw. zu entscheiden
 
-- **Eigenbewegungskorrektur in `astrsolve.c:1661/1708` (behoben, aber nicht aktiv):** `properr2` wurde aus der Eigenbewegung selbst berechnet (`wcsprop²·wcschi2`) statt aus ihrem Fehler. Der Dämpfungsfaktor `prop²/(prop²+properr2)` wurde so zu `1/(1+χ²)`, also unabhängig von der Messgenauigkeit (bei χ² ≈ 1 wurde jede Eigenbewegung halbiert). Jetzt wird `wcsproperr²·wcschi2` verwendet, wie in `astrefcat.c:925`. Der Code läuft derzeit nie: Das Schlüsselwort `CORRECT_PROPERMOTIONS` ist seit `c394c7b` (2013) auskommentiert, auch upstream. Vor einem Einschalten muss die Korrektur mit Daten mit echten Eigenbewegungen über mehrere Epochen getestet werden.
+- **Eigenbewegungskorrektur in `astrsolve.c:1661/1708` (behoben, aber nicht aktiv):** `properr2` wurde aus der Eigenbewegung selbst berechnet (`wcsprop²·wcschi2`) statt aus ihrem Fehler. Der Dämpfungsfaktor `prop²/(prop²+properr2)` wurde so zu `1/(1+χ²)`, also unabhängig von der Messgenauigkeit (bei χ² ≈ 1 wurde jede Eigenbewegung halbiert). Jetzt wird `wcsproperr²·wcschi2` verwendet, wie in `astrefcat.c:925`. Der Code läuft derzeit nie: Das Schlüsselwort `CORRECT_PROPERMOTIONS` ist seit `c394c7b` (2013) auskommentiert, auch upstream. Vor einem Einschalten muss die Korrektur mit Daten mit echten Eigenbewegungen über mehrere Epochen getestet werden. Weitere Probleme dieser Option: siehe Abschnitt 11.
 - **`photsolve.c`:** Die Koeffizienten-Arrays `*2` (Offsets pro Set, `offlag`) werden gefüllt, aber nie in die Matrix übernommen. Offenbar ist das Feature unvollständig. Es wurden nur die toten Zuweisungen entfernt.
+
+## 11. Eigenbewegungen: `COMPUTE_PROPERMOTIONS` und `CORRECT_PROPERMOTIONS`
+
+Stand: 17.11.2026. Untersucht mit synthetischen Mehrepochen-Daten (`tests/gen_synth_pm.py`): 8 Belichtungen von 2014 bis 2022, 20 % schnelle Sterne (σ = 60 mas/yr je Achse), Referenzkatalog mit Eigenbewegungen zur Epoche 2016. Verglichen wurden die gemessenen Eigenbewegungen und die gelösten WCS mit der Wahrheit.
+
+### Behobene Fehler (aktiver Code)
+
+| Stelle | Problem | Nachweis |
+|---|---|---|
+| `proper.c:504` | **Eigenbewegungen fehlen ohne Referenzkatalog.** Beim Mittelwert der Positionen stand `astromlabel` statt `astromlabel>=0`. Mit `INCLUDE_ASTREFCATALOG N` wurden alle Messungen des ersten astrometrischen Instruments (Label 0) übersprungen und dann ganz verworfen. Bei nur einem Instrument blieb fast jede Quelle ohne Eigenbewegung (Wert 0). Der Fehler besteht seit 2012 (`38e14f3`), auch upstream. | Test: 88 % der Quellen ohne Eigenbewegung, Steigung gemessen/wahr 0,15 statt 1. Nach der Korrektur 0 % und 0,999. |
+| `astrefcat.c:1014` | Mit `ASTREFEPOCH_TYPE` ungleich `ORIGINAL` werden VizieR-Referenzpositionen auf `epoch_in` propagiert, `sample->epoch` behielt aber die Katalogepoche. Mit `INCLUDE_ASTREFCATALOG Y` ging der Referenzpunkt so zur falschen Zeit in den Eigenbewegungsfit ein. Jetzt wird `epoch_in` gesetzt. | Code-Durchsicht; mangels erreichbarer VizieR-Server nicht getestet. |
+
+Neuer Test `tests/test_propmotion01.py` in `make check`: Er prüft bei `INCLUDE_ASTREFCATALOG Y` und `N`, dass alle Quellen eine Eigenbewegung haben, dass die robuste Streuung unter 6 mas/yr liegt und dass die Steigung für schnelle Sterne 1 ± 0,05 beträgt. Die gemeinsamen Teile der Generatoren stehen jetzt in `tests/synth_lib.py`; die Daten von `gen_synth.py` sind unverändert (byte-identisch geprüft).
+
+### `CORRECT_PROPERMOTIONS` (weiterhin abgeschaltet)
+
+Die Option ist seit 2013 auskommentiert (auch upstream) und unvollständig implementiert:
+
+| Lauf (Testdaten oben) | WCS-Fehler | Eigenbewegungen, helle Sterne (robuste Streuung RA/Dec) |
+|---|---|---|
+| ohne Korrektur | 11,4 mas | 2,9 / 1,2 mas/yr |
+| Korrektur mit alter Formel | 13,6 mas | 11 / 11 mas/yr |
+| Korrektur mit korrigierter Formel | 8,0 mas | 23 / 21 mas/yr |
+| zusätzlich `reproj_fgroup()` vor der Schlussberechnung | 8,0 mas | 2,9 / 1,2 mas/yr |
+
+- **Formel** (Abschnitt 10): Mit der alten Formel verschlechterte die Korrektur die Lösung. Das ist ein plausibler Grund für das Abschalten.
+- **Fehlende Reprojektion (behoben):** Nach dem dritten Lösungsschritt fehlte `reproj_fgroup()`. Die abschließende Eigenbewegungsberechnung lief dann auf korrigierten Positionen mit veralteter WCS, und die ausgegebenen Eigenbewegungen waren unbrauchbar. `makeit.c` reprojiziert jetzt vorher (nur wenn die Option aktiv ist).
+- **Statistiken (offen):** Statistik und Clipping werden nach dem dritten Lösungsschritt nicht neu berechnet. XML-Statistiken und Check-Plots beschreiben weiterhin die Lösung ohne Korrektur.
+- **Grundsätzliche Grenze (offen):** Der Löser hat keine Eigenbewegungen als freie Parameter. Der lineare Anteil des Eigenbewegungsfeldes aller Sterne (gewichtet wie im Löser) wird daher als zeitlich lineare Drift in die linearen WCS-Terme der Belichtungen übernommen. Gemessen sind etwa 0,2 mas/arcmin pro Jahr. Diese Drift erzeugt einen feldweiten Trend in den gemessenen Eigenbewegungen von etwa 3 mas/yr (nach Abzug eines linearen Feldtrends bleiben 0,2 mas/yr). Die Korrektur nutzt die im driftenden System gemessenen Eigenbewegungen und kann die Drift deshalb nicht entfernen; sie verbessert nur den nichtlinearen Anteil (3,5 → 2,0 mas). Auch ein Referenzkatalog auf der mittleren Epoche oder `ASTREF_WEIGHT 100` beseitigen die Drift nicht. Abhilfe brächte nur eine Propagation der Referenzsterne mit ihren Katalog-Eigenbewegungen auf die Epoche jeder einzelnen Belichtung.
+- **`ASTREFEPOCH_TYPE`** wirkt nur für VizieR-Kataloge, nicht für Referenzkataloge aus einer Datei (`ASTREF_CATALOG FILE`).
+
+**Empfehlung:** `CORRECT_PROPERMOTIONS` abgeschaltet lassen, bis Statistiken nach dem dritten Lösungsschritt neu berechnet werden und die Drift über Referenz-Eigenbewegungen pro Belichtung verankert ist.
