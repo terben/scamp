@@ -71,6 +71,88 @@
 time_t		thetime, thetime2;
 char		gstr[MAXCHAR];
 
+/****** astrstats_report ****************************************************
+PROTO	void astrstats_report(fgroupstruct **fgroups, fieldstruct **reffields,
+			int ngroup, int reprojflag, char *title)
+PURPOSE	Update the cross-identifications for the current astrometric
+	solution, compute the internal and external astrometric statistics
+	(with clipping) and display them.
+INPUT	array of pointers to the field groups,
+	array of pointers to the reference fields,
+	number of groups,
+	reproj_fgroup() flags,
+	title suffix for the displayed tables.
+OUTPUT	-.
+NOTES	Uses the global preferences.
+VERSION	17/11/2026
+ ***/
+static void astrstats_report(fgroupstruct **fgroups, fieldstruct **reffields,
+			int ngroup, int reprojflag, char *title)
+{
+    char	str[MAXCHAR];
+    int		g;
+
+    /* Display internal astrometric stats */
+    NFPRINTF(OUTPUT, "");
+    QPRINTF(OUTPUT, " \n----- Astrometric stats (internal)%s :\n\n", title);
+    QIPRINTF(OUTPUT,
+  "                  All detections         | "
+    "          High S/N           ");
+
+    QIPRINTF(OUTPUT,
+    "           dAXIS1  dAXIS2   chi2   ndets | "
+    "dAXIS1  dAXIS2   chi2   ndets");
+    for (g=0; g<ngroup; g++)
+    {
+        /*-- Reproject all fields from a group to a common projection (update) */
+        reproj_fgroup(fgroups[g], reffields[g], reprojflag);
+        /*-- Perform cross-identifications across catalogs */
+        sprintf(str, "Making cross-identifications in group %d", g+1);
+        NFPRINTF(OUTPUT, str);
+        CrossId_run(fgroups[g], reffields[g], fgroups[g]->sig_referr[0]?
+                prefs.astrclip_nsig*fgroups[g]->sig_referr[0]
+                : prefs.crossid_radius*ARCSEC/DEG);
+
+        astrstats_fgroup(fgroups[g], reffields[g], prefs.sn_thresh[1]);
+        astrclip_fgroup(fgroups[g], reffields[g], prefs.astrclip_nsig);
+        astrstats_fgroup(fgroups[g], reffields[g], prefs.sn_thresh[1]);
+        if (fgroups[g]->nintmatch>0)
+        {
+            QPRINTF(OUTPUT,
+                    "Group %2d: %6.3g\" %6.3g\" %6.2g %7d %6.3g\" %6.3g\" %6.2g %7d\n",
+                    g+1,
+                    fgroups[g]->sig_interr[0]*DEG/ARCSEC,
+                    fgroups[g]->sig_interr[1]*DEG/ARCSEC,
+                    fgroups[g]->chi2_int, fgroups[g]->nintmatch,
+                    fgroups[g]->sig_interr_hsn[0]*DEG/ARCSEC,
+                    fgroups[g]->sig_interr_hsn[1]*DEG/ARCSEC,
+                    fgroups[g]->chi2_int_hsn, fgroups[g]->nintmatch_hsn);
+        }
+    }
+
+    /* Display external astrometric stats */
+    NFPRINTF(OUTPUT, "");
+    QPRINTF(OUTPUT, " \n----- Astrometric stats (external)%s:\n\n", title);
+    QIPRINTF(OUTPUT,
+    "                  All detections         | "
+    "          High S/N           ");
+    QIPRINTF(OUTPUT,
+    "           dAXIS1  dAXIS2   chi2  nstars | "
+    "dAXIS1  dAXIS2   chi2  nstars");
+    for (g=0; g<ngroup; g++)
+    {
+        QPRINTF(OUTPUT,
+                "Group %2d: %6.3g\" %6.3g\" %6.2g %7d %6.3g\" %6.3g\" %6.2g %7d\n",
+                g+1,
+                fgroups[g]->sig_referr[0]*DEG/ARCSEC,
+                fgroups[g]->sig_referr[1]*DEG/ARCSEC,
+                fgroups[g]->chi2_ref, fgroups[g]->nrefmatch,
+                fgroups[g]->sig_referr_hsn[0]*DEG/ARCSEC,
+                fgroups[g]->sig_referr_hsn[1]*DEG/ARCSEC,
+                fgroups[g]->chi2_ref_hsn, fgroups[g]->nrefmatch_hsn);
+    }
+}
+
 /********************************** makeit ***********************************/
 void makeit(void)
 {
@@ -294,65 +376,8 @@ void makeit(void)
         astrsolve_fgroups(fgroups, ngroup);
     }
 
-    /* Display internal astrometric stats */
-    NFPRINTF(OUTPUT, "");
-    QPRINTF(OUTPUT, " \n----- Astrometric stats (internal) :\n\n");
-    QIPRINTF(OUTPUT,
-  "                  All detections         | "
-    "          High S/N           ");
-
-    QIPRINTF(OUTPUT,
-    "           dAXIS1  dAXIS2   chi2   ndets | "
-    "dAXIS1  dAXIS2   chi2   ndets");
-    for (g=0; g<ngroup; g++)
-    {
-        /*-- Reproject all fields from a group to a common projection (update) */
-        reproj_fgroup(fgroups[g], reffields[g], reprojflag);
-        /*-- Perform cross-identifications across catalogs */
-        sprintf(str, "Making cross-identifications in group %d", g+1);
-        NFPRINTF(OUTPUT, str);
-        CrossId_run(fgroups[g], reffields[g], fgroups[g]->sig_referr[0]?
-                prefs.astrclip_nsig*fgroups[g]->sig_referr[0]
-                : prefs.crossid_radius*ARCSEC/DEG);
-
-        astrstats_fgroup(fgroups[g], reffields[g], prefs.sn_thresh[1]);
-        nclip = astrclip_fgroup(fgroups[g], reffields[g], prefs.astrclip_nsig);
-        astrstats_fgroup(fgroups[g], reffields[g], prefs.sn_thresh[1]);
-        if (fgroups[g]->nintmatch>0)
-        {
-            QPRINTF(OUTPUT,
-                    "Group %2d: %6.3g\" %6.3g\" %6.2g %7d %6.3g\" %6.3g\" %6.2g %7d\n",
-                    g+1,
-                    fgroups[g]->sig_interr[0]*DEG/ARCSEC,
-                    fgroups[g]->sig_interr[1]*DEG/ARCSEC,
-                    fgroups[g]->chi2_int, fgroups[g]->nintmatch,
-                    fgroups[g]->sig_interr_hsn[0]*DEG/ARCSEC,
-                    fgroups[g]->sig_interr_hsn[1]*DEG/ARCSEC,
-                    fgroups[g]->chi2_int_hsn, fgroups[g]->nintmatch_hsn);
-        }
-    }
-
-    /* Display external astrometric stats */
-    NFPRINTF(OUTPUT, "");
-    QPRINTF(OUTPUT, " \n----- Astrometric stats (external):\n\n");
-    QIPRINTF(OUTPUT,
-    "                  All detections         | "
-    "          High S/N           ");
-    QIPRINTF(OUTPUT,
-    "           dAXIS1  dAXIS2   chi2  nstars | "
-    "dAXIS1  dAXIS2   chi2  nstars");
-    for (g=0; g<ngroup; g++)
-    {
-        QPRINTF(OUTPUT,
-                "Group %2d: %6.3g\" %6.3g\" %6.2g %7d %6.3g\" %6.3g\" %6.2g %7d\n",
-                g+1,
-                fgroups[g]->sig_referr[0]*DEG/ARCSEC,
-                fgroups[g]->sig_referr[1]*DEG/ARCSEC,
-                fgroups[g]->chi2_ref, fgroups[g]->nrefmatch,
-                fgroups[g]->sig_referr_hsn[0]*DEG/ARCSEC,
-                fgroups[g]->sig_referr_hsn[1]*DEG/ARCSEC,
-                fgroups[g]->chi2_ref_hsn, fgroups[g]->nrefmatch_hsn);
-    }
+    /* Display internal and external astrometric stats */
+    astrstats_report(fgroups, reffields, ngroup, reprojflag, "");
 
     if (prefs.solvphotom_flag)
     {
@@ -485,8 +510,24 @@ void makeit(void)
         NFPRINTF(OUTPUT, "Merging detections...");
         for (g=0; g<ngroup; g++)
             merge_fgroup(fgroups[g], reffields[g]);
+        /*-- Clipping is lost with the new cross-identifications: redo it */
+        NFPRINTF(OUTPUT, "");
+        QPRINTF(OUTPUT, " \n----- Astrometric clipping (proper motion corrected):\n\n");
+        for (g=0; g<ngroup; g++)
+        {
+            sprintf(str, "Astrometric clipping in group %d", g+1);
+            NFPRINTF(OUTPUT, str);
+            astrstats_fgroup(fgroups[g], reffields[g], prefs.sn_thresh[1]);
+            nclip = astrclip_fgroup(fgroups[g], reffields[g], prefs.astrclip_nsig);
+            NFPRINTF(OUTPUT, "");
+            QPRINTF(OUTPUT, " Group %2d: %d/%d detections removed\n",
+                    g+1, nclip, fgroups[g]->nintmatch);
+        }
         /*-- Compute global astrometric solution: 3rd iteration */
         astrsolve_fgroups(fgroups, ngroup);
+        /*-- Statistics (and the XML metadata) must describe the new solution */
+        astrstats_report(fgroups, reffields, ngroup,
+                REPROJ_PROPCORR | reprojflag, " (proper motion corrected)");
     }
 
     /* Compute final proper motions and parallaxes */
