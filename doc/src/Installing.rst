@@ -68,14 +68,14 @@ machines and should compile on any
 some difficulties with the configuration), provided
 that the *development* packages of the following libraries have been installed:
 
-* |ATLAS|_ V3.6 and above [#atlas_install]_,
+* |ATLAS|_ V3.6 and above, or OpenBLAS with LAPACKe [#atlas_install]_,
 * |FFTw|_ V3.0 and above [#fftw_install]_, 
 * |PLPlot|_ V5.9 and above.
 
 On Fedora/Redhat distributions for instance, the development packages above are
 available as ``atlas-devel``, ``fftw-devel`` and ``plplot-devel``.
 |PLPlot| is only required for producing diagnostic plots. Note
-that |ATLAS| and |FFTw| are not necessary if |SCAMP| is linked with
+that |ATLAS|/OpenBLAS and |FFTw| are not necessary if |SCAMP| is linked with
 |Intel|'s |MKL|_ library.
 
 Installation
@@ -157,10 +157,13 @@ some shells require the :program:`rehash` command to be run before making a
 freshly installed executable accessible in the execution path).
 
 .. [#mac_install] Mac OS X |.dmg|_ packages should be available soon.
-.. [#atlas_install] Use the ``--with-atlas`` and/or
-   ``--with-atlas-incdir`` options of the |SCAMP| :command:`configure`
-   script to specify the |ATLAS| library and include paths if |ATLAS| files are 
-   installed at unusual locations.
+.. [#atlas_install] By default, :command:`configure` uses |ATLAS| if it is
+   usable and falls back to OpenBLAS otherwise. Use ``--enable-atlas`` or
+   ``--enable-openblas`` to force one of them. Use the ``--with-atlas-libdir``
+   and/or ``--with-atlas-incdir`` options (or ``--with-openblas-libdir`` and
+   ``--with-openblas-incdir``) of the |SCAMP| :command:`configure` script to
+   specify the library and include paths if the files are installed at unusual
+   locations.
 .. [#fftw_install] Make sure that |FFTW| has been compiled with
    :command:`configure` options ``--enable-threads --enable-float``.
 .. [#geticc] The Linux versions of the |Intel| compiler and |MKL| are

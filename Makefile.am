@@ -29,7 +29,12 @@
 ACLOCAL_AMFLAGS		= -I m4
 AUTOMAKE_OPTIONS	= foreign no-dependencies
 SUBDIRS			= src tests man doc debian
-dist_pkgdata_DATA	= config/*.ahead xsl/scamp.xsl
+dist_pkgdata_DATA	= config/cfh12k.ahead config/decam.ahead config/fors2.ahead \
+			  config/megacam.ahead config/minimo.ahead \
+			  config/mosaic2.ahead config/omegacam.ahead \
+			  config/suprimecam.ahead config/vircam.ahead \
+			  config/wfc.ahead config/wfi.ahead config/wircam.ahead \
+			  xsl/scamp.xsl
 EXTRA_DIST		= autogen.sh AUTHORS BUGS ChangeLog COPYRIGHT \
 			  HISTORY INSTALL LICENSE README.md THANKS
 RPM_ROOTDIR		= `rpmbuild --nobuild -E %_topdir`

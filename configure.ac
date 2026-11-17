@@ -157,6 +157,13 @@ AC_SYS_LARGEFILE
 AC_FUNC_FSEEKO
 
 # Provide special options for ATLAS
+AC_MSG_CHECKING([whether ATLAS is enabled])
+AC_ARG_ENABLE(atlas,
+	[AS_HELP_STRING([--enable-atlas],
+	[Use the ATLAS library for linear algebra (default = auto: ATLAS if \
+usable, otherwise OpenBLAS)])],
+	[], [enable_atlas="auto"])
+AC_MSG_RESULT([$enable_atlas])
 AC_ARG_WITH(atlas-libdir,
 	[AS_HELP_STRING([--with-atlas-libdir=<ATLAS library path>],
 	[Provide an alternative path to the ATLAS library])])
@@ -189,8 +196,9 @@ AC_ARG_WITH(mkl-dir,
 AC_MSG_CHECKING([whether OpenBLAS is enabled])
 AC_ARG_ENABLE(openblas,
 	[AS_HELP_STRING([--enable-openblas],
-	[Use the OpenBLAS library instead of ATLAS (default = no)])],
-	[], [enable_openblas="no"])
+	[Use the OpenBLAS library for linear algebra (default = auto: ATLAS \
+if usable, otherwise OpenBLAS)])],
+	[], [enable_openblas="auto"])
 AC_MSG_RESULT([$enable_openblas])
 AC_ARG_WITH(openblas-libdir,
 	[AS_HELP_STRING([--with-openblas-libdir=<OpenBLAS library path>],
@@ -299,10 +307,53 @@ else
     AC_MSG_ERROR([$FFTW_ERROR Exiting.])
   )
 
-  if test "x$enable_openblas" = "xyes"; then
+######## Choose the linear algebra library (BLAS + LAPACK) ########
+# Explicit choices (--enable-atlas/--enable-openblas, or the corresponding
+# --with-*-dir options) are honored strictly; otherwise ATLAS is tried first
+# and OpenBLAS is used as a fallback.
+  if test "x$enable_atlas" = xyes && test "x$enable_openblas" = xyes; then
+    AC_MSG_ERROR([--enable-atlas and --enable-openblas are mutually exclusive! Exiting.])
+  fi
+  if test "x$enable_atlas" = xauto && test "x$enable_openblas" = xauto; then
+    if test "x$with_atlas_libdir$with_atlas_incdir" != x; then
+      enable_atlas="yes"
+    elif test "x$with_openblas_libdir$with_openblas_incdir" != x; then
+      enable_openblas="yes"
+    fi
+  fi
+  test "x$enable_openblas" = xyes && enable_atlas="no"
+  test "x$enable_atlas" = xyes && enable_openblas="no"
+  test "x$enable_atlas" = xauto && enable_atlas="try"
+  test "x$enable_openblas" = xauto && enable_openblas="try"
+
+  acx_linalg=""
+  ATLAS_ERROR=""
+  OPENBLAS_ERROR=""
+######### handle the ATLAS library (linear algebra: BLAS + cLAPACK) ##########
+  if test "x$enable_atlas" != xno; then
+    ACX_ATLAS($with_atlas_libdir, $with_atlas_incdir, $use_pthreads,
+      [
+        acx_linalg="ATLAS"
+        [LIBS="$ATLAS_LIBS $LIBS"]
+        if test "$ATLAS_WARN" != ""; then
+	  AC_MSG_WARN([$ATLAS_WARN])
+	fi
+      ],
+      [
+        if test "x$enable_atlas" = xyes; then
+          AC_MSG_ERROR([$ATLAS_ERROR Exiting.])
+        fi
+        if test "x$enable_openblas" != xno; then
+          AC_MSG_NOTICE([ATLAS not usable, trying OpenBLAS instead])
+        fi
+      ]
+    )
+  fi
 ######## Handle the OpenBLAS library (linear algebra: BLAS + LAPACKe) ########
+  if test "x$acx_linalg" = x && test "x$enable_openblas" != xno; then
     ACX_OPENBLAS($with_openblas_libdir, $with_openblas_incdir, $use_pthreads, no,
       [
+        acx_linalg="OpenBLAS"
         AM_CFLAGS="$AM_CFLAGS $OPENBLAS_CFLAGS "
         AM_LDFLAGS="$AM_LDFLAGS $OPENBLAS_LDFLAGS "
         LIBS="$OPENBLAS_LIBS $LIBS"
@@ -310,21 +361,20 @@ else
           AC_MSG_WARN([$OPENBLAS_WARN])
         fi
       ],
-      AC_MSG_ERROR([$OPENBLAS_ERROR Exiting.])
-    )
-
-  else
-######### handle the ATLAS library (linear algebra: BLAS + cLAPACK) ##########
-    ACX_ATLAS($with_atlas_libdir, $with_atlas_incdir, $use_pthreads,
       [
-        [LIBS="$ATLAS_LIBS $LIBS"]
-        if test "$ATLAS_WARN" != ""; then
-	  AC_MSG_WARN([$ATLAS_WARN])
-	fi
-      ],
-      AC_MSG_ERROR([$ATLAS_ERROR Exiting.])
+        if test "x$enable_openblas" = xyes; then
+          AC_MSG_ERROR([$OPENBLAS_ERROR Exiting.])
+        fi
+      ]
     )
   fi
+  if test "x$acx_linalg" = x; then
+    test "x$enable_atlas" = xno && ATLAS_ERROR="disabled."
+    test "x$enable_openblas" = xno && OPENBLAS_ERROR="disabled."
+    AC_MSG_ERROR([No usable linear algebra library found! ATLAS: $ATLAS_ERROR OpenBLAS: $OPENBLAS_ERROR Install ATLAS or OpenBLAS (with LAPACKe), or use --enable-mkl. Exiting.])
+  fi
+  AC_MSG_CHECKING([for the linear algebra library])
+  AC_MSG_RESULT([$acx_linalg])
 fi
 
 ################# handle the cURL library (HTTP queries) ##################

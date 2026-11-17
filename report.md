@@ -71,14 +71,15 @@ Dazu eine der folgenden Bibliotheksvarianten:
 **Bauen:**
 ```
 ./autogen.sh
-./configure --enable-mkl          # oder --enable-openblas; ohne Option: ATLAS
+./configure --enable-mkl          # oder --enable-openblas / --enable-atlas;
+                                  # ohne Option: ATLAS, falls nutzbar, sonst OpenBLAS
 make -j && make check
 ```
 
 **Besonderheiten:**
 - **`cblas.h` über update-alternatives:** Auf Debian/Ubuntu ist `cblas.h` (ebenso `libblas.so.3` und `liblapack.so.3`) eine Alternative, die je nach installierten Paketen auf MKL, OpenBLAS oder ATLAS zeigt.
   - OpenBLAS und MKL kommen damit zurecht.
-  - **ATLAS** braucht das ATLAS-eigene `cblas.h`. Entweder `sudo update-alternatives --config cblas.h-x86_64-linux-gnu` auf ATLAS stellen, oder `--with-atlas-incdir` auf ein Verzeichnis zeigen lassen, in dem `cblas.h` → `cblas-atlas.h` und `clapack.h` liegen.
+  - **ATLAS** braucht das ATLAS-eigene `cblas.h`. Ohne Option weicht `configure` sonst automatisch auf OpenBLAS aus (siehe Abschnitt 5). Für ATLAS: entweder `sudo update-alternatives --config cblas.h-x86_64-linux-gnu` auf ATLAS stellen, oder `--with-atlas-incdir` auf ein Verzeichnis zeigen lassen, in dem `cblas.h` → `cblas-atlas.h` und `clapack.h` liegen.
 - **Intel-Compiler aus conda** (`dpcpp_linux-64`): icx sucht dann nur im conda-Sysroot und findet die System-Bibliotheken nicht. Abhilfe:
   ```
   ./configure CC="icx --sysroot=/" --enable-mkl
@@ -132,3 +133,41 @@ make -j && make check
 - **VizieR-Abfragen:** SCAMP fragt per `http://` an. Mehrere Spiegel waren beim Test nicht erreichbar oder lieferten leere Tabellen. Es lohnt sich, die Standard-Server (`REF_SERVER`) und die Umstellung auf `https://` zu prüfen.
 - **Compiler-Warnungen:** GCC mit `-Wall` meldet noch viele ungenutzte Variablen und zwei mögliche `sprintf`-Überläufe (`cplot.c:129`, `xml.c:214`, `astrefcat.c:304`). Letztere sollten auf `snprintf` umgestellt werden.
 - **Dokumentation:** Sphinx meldet noch 10 inhaltliche Warnungen, darunter das undefinierte Label `param_checkplot` und fehlende Leerzeilen in `Using.rst` und `Output.rst`.
+
+## 5. Nachtrag: Branch `install-fix` – stabiles `./configure` ohne Optionen
+
+**Problem:** Ein `./configure` ohne Optionen brach mit dem ATLAS-Fehler ab, sobald `cblas.h`
+(Debian-Alternative) nicht auf ATLAS zeigte. Auf dem Testrechner zeigt es auf MKL
+(`/usr/include/mkl/mkl_cblas.h`). Ohne Option war ATLAS aber fest gesetzt.
+
+**Lösung:**
+- **Neue Option `--enable-atlas`.** `--enable-atlas` und `--enable-openblas` stehen jetzt
+  standardmäßig auf `auto`.
+- **Automatik:** Erst wird ATLAS versucht. Ist ATLAS nicht nutzbar, wird OpenBLAS (mit LAPACKe)
+  genommen. `configure` meldet die Wahl („checking for the linear algebra library... OpenBLAS").
+- **Explizite Wahl wird strikt eingehalten:** Mit `--enable-atlas`, `--enable-openblas`,
+  `--with-atlas-*dir` oder `--with-openblas-*dir` gibt es keinen Fallback, sondern den bisherigen
+  klaren Fehler. Beide `--enable` gleichzeitig ergeben einen Fehler.
+- **Wenn gar nichts geht:** Die Fehlermeldung nennt die Ursache für ATLAS und für OpenBLAS und
+  verweist auf `--enable-mkl`.
+- MKL wird in der Automatik bewusst nicht versucht. Es ersetzt auch FFTW und braucht eine eigene
+  Compilerwahl.
+- **`Makefile.am`:** `config/*.ahead` steht jetzt als explizite Dateiliste da. Der Wildcard
+  verhinderte Builds außerhalb des Quellverzeichnisses („No rule to make target
+  'config/*.ahead'").
+
+**Getestet (gcc, Ubuntu 22.04, frischer Klon + `./autogen.sh`):**
+
+| Aufruf | Ergebnis |
+|---|---|
+| `./configure` | OpenBLAS (ATLAS-`cblas.h` nicht aktiv), `make check` 6/6 |
+| `./configure --with-atlas-incdir=<shim>` | ATLAS, `make check` 6/6 |
+| `--enable-openblas`, `--disable-atlas` | OpenBLAS |
+| `--enable-atlas` | Fehler (wie bisher, mit Hinweis auf update-alternatives) |
+| `--enable-atlas --enable-openblas` | Fehler: schließen sich aus |
+| `--disable-openblas` | Fehler: keine Bibliothek (ATLAS nicht nutzbar, OpenBLAS abgeschaltet) |
+| `--enable-mkl` | MKL, unverändert |
+
+**Noch offen:** `make check` außerhalb des Quellverzeichnisses (VPATH) schlägt fehl. Die Tests
+suchen ihre Daten relativ zum Arbeitsverzeichnis. Das Problem bestand schon vorher und hängt
+nicht mit der BLAS-Wahl zusammen.

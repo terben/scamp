@@ -43,7 +43,7 @@ on Microsoft Windows, at the price of some difficulties with the
 configuration), provided that the development packages of the
 following libraries have been installed:
 
-* ATLAS V3.6 and above [2],
+* ATLAS V3.6 and above, or OpenBLAS with LAPACKe [2],
 
 * FFTw V3.0 and above [3],
 
@@ -52,7 +52,7 @@ following libraries have been installed:
 On Fedora/Redhat distributions for instance, the development packages
 above are available as "atlas-devel", "fftw-devel" and "plplot-devel".
 PLPlot is only required for producing diagnostic plots. Note that
-ATLAS and FFTw are not necessary if SCAMP is linked with
+ATLAS/OpenBLAS and FFTw are not necessary if SCAMP is linked with
 Intel's MKL (Math Kernel Library) library.
 
 
@@ -119,9 +119,13 @@ path).
 
 [1] Mac OS X ".dmg" packages should be available soon.
 
-[2] Use the "--with-atlas" and/or "--with-atlas-incdir" options of
-    the SCAMP "configure" script to specify the ATLAS library and
-    include paths if ATLAS files are installed at unusual locations.
+[2] By default, "configure" uses ATLAS if it is usable and falls back
+    to OpenBLAS otherwise. Use "--enable-atlas" or "--enable-openblas"
+    to force one of them. Use the "--with-atlas-libdir" and/or
+    "--with-atlas-incdir" options (or "--with-openblas-libdir" and
+    "--with-openblas-incdir") of the SCAMP "configure" script to specify
+    the library and include paths if the files are installed at unusual
+    locations.
 
 [3] Make sure that FFTw has been compiled with "configure"
     options "--enable-threads --enable-float".
