@@ -40,10 +40,12 @@ AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_HEADERS(config.h)
 AM_INIT_AUTOMAKE
+# Dates (in the C locale, as needed for package changelogs); the RFC 2822
+# format is spelled out because "date -R" is not supported by BSD/macOS date
 date=`date +%Y-%m-%d`
-date1=`date -R`
-date2=`date +"%a %b %d %Y"`
-date3=`date +"%B %Y"`
+date1=`LC_ALL=C date +"%a, %d %b %Y %H:%M:%S %z"`
+date2=`LC_ALL=C date +"%a %b %d %Y"`
+date3=`LC_ALL=C date +"%B %Y"`
 AC_DEFINE_UNQUOTED(DATE, "$date", [Archive creation date])
 AC_SUBST(PACKAGER, "AstrOmatic")
 AC_SUBST(DATE1, "$date1")
