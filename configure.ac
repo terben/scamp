@@ -278,7 +278,8 @@ if test "$use_pthreads" = "yes"; then
   AC_MSG_RESULT([maximum of $n_pthreads thread(s)])
   AC_DEFINE(USE_THREADS, 1, [Triggers multhreading])
 # CC, CFLAGS and LIBS are system and compiler-dependent
-  ACX_PTHREAD
+  AX_PTHREAD([],
+    [AC_MSG_ERROR([POSIX threads not found! Try --disable-threads])])
   CC="$PTHREAD_CC"
   [AM_CFLAGS="$AM_CFLAGS $PTHREAD_CFLAGS -D_REENTRANT"]
   LIBS="$LIBS $PTHREAD_LIBS"
