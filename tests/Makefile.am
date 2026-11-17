@@ -14,7 +14,8 @@ test_chealpix_SOURCES = test_chealpix.c $(ALL_SCAMP_SOURCES)
 test_chealpix_LDADD = $(top_builddir)/src/chealpix.o 
 
 test_chealpixstore_SOURCES = test_chealpixstore.c $(ALL_SCAMP_SOURCES)
-test_chealpixstore_LDADD = $(top_builddir)/src/chealpix.o $(top_builddir)/src/chealpixstore.o
+test_chealpixstore_LDADD = $(top_builddir)/src/chealpix.o $(top_builddir)/src/chealpixstore.o \
+                     $(top_builddir)/src/fits/libfits.a
 
 test_crossid_single_catalog_SOURCES = test_crossid_single_catalog.c $(ALL_SCAMP_SOURCES)
 test_crossid_single_catalog_LDADD = $(top_builddir)/src/chealpix.o \

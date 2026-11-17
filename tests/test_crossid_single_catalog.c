@@ -80,8 +80,8 @@ compare_fields(int n, fieldstruct **fields)
             linkedspl[j] = &fields[j]->set[0]->sample[i];
         }
         for (j=1; j<n; j++) {
-            assert(abs(linkedspl[0]->wcspos[0] - linkedspl[j]->wcspos[0]) < FLT_EPSILON);
-            assert(abs(linkedspl[0]->wcspos[1] - linkedspl[j]->wcspos[1]) < FLT_EPSILON);
+            assert(fabs(linkedspl[0]->wcspos[0] - linkedspl[j]->wcspos[0]) < FLT_EPSILON);
+            assert(fabs(linkedspl[0]->wcspos[1] - linkedspl[j]->wcspos[1]) < FLT_EPSILON);
         }
 
         assert(linkedspl[0]->prevsamp == NULL);

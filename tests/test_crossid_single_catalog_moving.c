@@ -13,6 +13,8 @@
 #include "../src/prefs.h"
 
 static char testfile[] = "extra/744331p.ascii";
+/* Linked samples differ by up to 0.3" per axis (see main()); allow 0.5" */
+#define POS_TOLERANCE (0.5/3600.0)
 prefstruct	prefs;
 char		gstr[MAXCHAR];
 
@@ -79,8 +81,8 @@ compare_fields(int n, fieldstruct **fields)
             linkedspl[j] = &fields[j]->set[0]->sample[i];
         }
         for (j=1; j<n; j++) {
-            assert(abs(linkedspl[0]->wcspos[0] - linkedspl[j]->wcspos[0]) < FLT_EPSILON);
-            assert(abs(linkedspl[0]->wcspos[1] - linkedspl[j]->wcspos[1]) < FLT_EPSILON);
+            assert(fabs(linkedspl[0]->wcspos[0] - linkedspl[j]->wcspos[0]) < POS_TOLERANCE);
+            assert(fabs(linkedspl[0]->wcspos[1] - linkedspl[j]->wcspos[1]) < POS_TOLERANCE);
         }
 
         assert(linkedspl[0]->prevsamp == NULL);

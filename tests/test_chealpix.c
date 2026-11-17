@@ -6,6 +6,7 @@
  */
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -22,7 +23,8 @@ int main(int argc, char **argv)
 
     for (i=0; i<nside2npix(nsides); i++) {
         neighbours_nest64(nsides, i, neigh);
-        k = fscanf(fd, "%li:%li:%li:%li:%li:%li:%li:%li:\n",
+        k = fscanf(fd, "%" SCNd64 ":%" SCNd64 ":%" SCNd64 ":%" SCNd64
+                ":%" SCNd64 ":%" SCNd64 ":%" SCNd64 ":%" SCNd64 ":\n",
                 &testneigh[0],&testneigh[1],&testneigh[2],&testneigh[3],
                 &testneigh[4],&testneigh[5],&testneigh[6],&testneigh[7]);
         assert(k == 8);
